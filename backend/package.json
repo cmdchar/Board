@@ -1,0 +1,21 @@
+{
+  "name": "boardai-backend",
+  "version": "1.0.0",
+  "description": "BoardAI real-time collaboration backend",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.0"
+  }
+}

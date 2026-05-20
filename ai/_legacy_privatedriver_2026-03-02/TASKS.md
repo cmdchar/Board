@@ -1,0 +1,905 @@
+# AI TASK TRACKER
+
+## Active Task (NOW)
+- **Premium fork (premium.private-driver.ro) — Executive Booking Only**
+  - Status: ready for manual QA
+  - Source of truth: `ai/taskpremium.md`
+  - Progress (2026-02-27, completion + alignment + zero-trace pass):
+    - [x] Audit raport livrat: `ai/premium_audit_report_2026-02-27.md`
+    - [x] Feature flags executive adăugate în `system_settings` (`product/booking/pricing/ui`)
+    - [x] Backend enforcement: blocat instant (`/api/rides/request`) în `executive_only`
+    - [x] Matching/scheduler broadcast oprit în `executive_only`
+    - [x] Endpointuri noi executive booking (`/api/executive/*`) + driver pending/confirm/reject
+    - [x] Frontend premium request migrat la rezervare executive (schedule + package + pending_confirmation)
+    - [x] Frontend home/ride-options ajustat pentru `disableOnDemand` + `hideNearbyDrivers`
+    - [x] Admin UI pentru management pachete (`service_packages`)
+    - [x] Route cleanup legacy instant:
+      - `/v2/passenger/finding-driver` -> redirect
+      - `/v2/passenger/driver-matched` -> redirect
+      - `/v2/driver/incoming-request` -> redirect
+      - `/v2/driver/premium-*` instant-flow routes -> redirect
+    - [x] Driver UI executive:
+      - listă pending bookings din `/api/driver/bookings/pending`
+      - confirm/reject manual din UI
+      - online/instant controls ascunse în executive mode
+    - [x] PWA shortcuts fără instant wording
+    - [x] `communication_logs` scris în lifecycle-ul executive
+    - [x] Landing page public repoziționat pe executive booking (RO/EN) + redeploy live pe `premium.private-driver.ro`
+    - [x] Deploy infrastructură premium separată (domain/port/db/service)
+      - domain `premium.private-driver.ro`
+      - service `privatedriver-premium`
+      - backend `8915`
+      - app dir `/var/www/premium`
+      - DB finală izolată `privatedriver_premium2` + executive flags enforced
+    - [x] Aliniere fluxuri autentificate la premium model:
+      - passenger onboarding copy executive
+      - driver onboarding/documents private_hire-only
+      - admin wording/document verification fallback private_hire
+      - backend onboarding normalize `serviceType=private_hire` în executive mode
+      - backend GDPR privacy policy wording premium
+    - [x] E2E nou pentru executive booking (pasager + șofer + admin)
+      - `e2e/executive/executive-booking.spec.ts`
+      - run live premium: `9/9 PASS`
+    - [x] Zero-trace cleanup legacy_instant/instant în runtime code:
+      - backend wording (`main.py`, `driver.py`) + health/root branding (`PrivateDriver Premium API`)
+      - frontend/public metadata (`src/i18n/ro.ts`, `src/i18n/en.ts`, `index.html`, `public/icons/manifest.json`)
+      - validation scan runtime (`src` + `backend/app` + `public` + `index.html`) fără match pe termenii legacy
+    - [x] Redeploy premium după zero-trace pass:
+      - release `release/privatedriver-x-20260227-222508.tar.gz`
+      - live bundle `assets/index-DyZyT_fg.js`
+      - `/api/health` returnează mesaj rebranduit `PrivateDriver Premium API is running`
+    - [x] Repo-wide cleanup complet (runtime + docs + seeds + mobile prompts)
+    - [x] Scan global repo fără termeni legacy
+    - [x] Revalidare finală `e2e/executive/executive-booking.spec.ts` -> `9/9 PASS`
+    - [x] Production hotfix pentru fallback config invalid:
+      - eliminat `api.example.com` fallback din bundle live
+      - `rides/config` + `conversations` auth endpoints validate (`200`)
+      - push VAPID valid pe premium (`/api/notifications/vapid-public-key` -> `200`)
+    - [x] Fix final DB/auth pe premium:
+      - root cause: `.env` setat accidental pe `privatedriver_premium22` (goală)
+      - corectat `MONGO_URI` + `MONGODB_URL` la `privatedriver_premium2`
+      - restart `privatedriver-premium` + login retestat `200` pentru toate cele 5 roluri
+    - [x] Research legal/compliance + document operațional firmă:
+      - creat `Firma.MD` (model legal, CAEN Rev.3, pași post-ONRC, contract automat per cursă)
+      - validare funcțională tehnică (build + compile + smoke API pe toate rolurile)
+    - [x] Update `/legal` pentru model contractual per rezervare:
+      - `LegalDocumentsPage` + `PassengerTransportContractPage` aliniate la contract-cadru + anexă automată
+      - fix link cookies (`/cookies`)
+      - deploy frontend pe `premium.private-driver.ro` + verificare live text
+    - [x] Contract PDF automat per booking executive (artefact legal + hash + arhivare):
+      - serviciu nou `executive_contract_service.py` (PDF + SHA-256 + storage)
+      - colecție nouă `booking_contracts` + pointer `bookings.contractDocument`
+      - snapshot automat la create/confirm/wait-stop/cancel/complete
+      - endpointuri list/download:
+        - `/api/executive/bookings/{booking_id}/contracts`
+        - `/api/executive/bookings/{booking_id}/contracts/latest`
+        - `/api/executive/bookings/{booking_id}/contracts/latest/download`
+        - `/api/executive/bookings/{booking_id}/contracts/{contract_id}/download`
+      - UI: buton download pe pasager (`PremiumRideRequest`) + șofer (`ExecutiveBookings`)
+      - fallback PDF intern activat pentru incompatibilitate WeasyPrint runtime
+      - notificări email executive integrate cu audit (`communication_logs.channel=email`, status sent/skipped/failed)
+      - deploy backend+frontend + smoke live (create/confirm/download PASS)
+      - E2E extins: `e2e/executive/executive-booking.spec.ts` validează contract metadata + download PDF, run premium `9/9 PASS`
+    - [x] Activare SMTP real pentru emailuri executive pe premium:
+      - `notification_service.py` extins cu provider `smtp` + selector `EMAIL_PROVIDER`
+      - fallback provider `auto`: SMTP -> SendGrid
+      - `.env` premium configurat cu `mail.smart-promotions.ro`
+      - debug conectivitate: `465` timeout din server, switch la `587 + STARTTLS`
+      - validare live: `communication_logs` pentru booking nou => email `status=sent` + provider code `250`
+    - [x] Hardening mesagerie cross-role + nume din profil:
+      - backend `conversations.py` returnează participant metadata dinamic din `users` (nume/rol curent)
+      - endpoint nou `GET /api/conversations/contacts` pentru descoperire contacte role-based
+      - passenger/driver Messages au quick actions (`Mesaj Support/Admin/Fleet`)
+      - fix fallback `currentUserId` în `ChatDetail` + `useMultiRoleMessages` (nu mai depinde de `localStorage.userId`)
+      - validare live matrix mesagerie:
+        - user<->driver
+        - user<->support
+        - driver<->support
+        - user<->admin
+        - driver<->fleet
+      - validare live identitate sender: `sender_name == auth/me.name` pentru toate rolurile testate
+    - [x] Privacy policy mesagerie (peer chat doar în fereastra cursei) + taburi separate:
+      - backend `conversations.py`:
+        - non-staff direct chat permis doar cu context comun ride/booking activ ori în fereastra post-cursă
+        - fallback timeout setat la `8h` (`system_settings.messaging.timeout_after_ride_hours`, admin-configurable)
+        - fără context ride comun -> `POST /api/conversations` răspunde `403`
+        - `send_message` blochează conversațiile peer fără `ride_id` valid/eligibil
+      - `GET /api/conversations/contacts` pentru non-staff:
+        - staff (`support/admin/fleet_manager`) mereu disponibili
+        - peer contacts (`user/driver`) doar din contexte de cursă eligibile
+      - UI mesagerie:
+        - taburi separate active: `Toate`, `Support`, `Admin`, `Fleet`
+        - quick actions separate: `Mesaj Support`, `Mesaj Admin`, `Mesaj Fleet`
+      - validare live (`premium.private-driver.ro`):
+        - temp user -> temp user (fără cursă) create conversation -> `403` (PASS)
+        - driver -> user necorelat create conversation -> `403` (PASS)
+        - user/admin/fleet către canale staff -> `200` (PASS)
+        - send în conversație peer fără ride context -> `403` (PASS)
+        - Playwright UI check: taburile și butoanele apar pe `/v2/passenger/messages` și `/v2/driver/messages`
+    - [x] Hotfix passenger interactivity (search/click) cu locație refuzată:
+      - eliminat blocker full-screen pentru `locationPermission=denied|pending` în `PassengerHome`
+      - adăugat fallback non-blocking + CTA `Setează pickup manual`
+      - deploy live + verificare automată click (fără erori)
+    - [x] Seed șoferi premium pe orașe cerute:
+      - adăugați 4 șoferi noi (Focșani, Galați, București, Botoșani) în `privatedriver_premium2`
+      - profile complete `users + drivers + driver_premium + driver_settings`
+      - actualizat filtru county în `PrivateDrivers` cu `Focșani` și `Botoșani`
+      - deploy frontend + validare API/login
+    - [x] Refactor listă șoferi premium după locația clientului:
+      - eliminată lista statică de județe; listă dinamică bazată pe șoferii existenți
+      - filtru implicit „zona mea” (distanță) pentru a evita afișarea șoferilor foarte îndepărtați
+      - buton explicit pentru deblocarea listei complete naționale
+      - endpoint `/api/premium/drivers` extins cu `lat/lng` + `location` + `distance`
+      - backend/frontend deploy + verificare
+    - [x] Opriri nelimitate + itinerariu complet cu opriri:
+      - eliminată limita de 2 opriri în `PassengerHome` și `RideOptions`
+      - `stops` propagate pe întreg flow-ul premium (`PrivateDrivers -> Profile -> PremiumRideRequest`)
+      - `PremiumRideRequest` randare hartă A -> opriri -> B + payload `stops` în `/api/executive/bookings`
+    - [x] Lifecycle executive pentru așteptare la opriri (contractual):
+      - endpointuri active booking driver + start/stop service + wait start/stop în `/api/executive/*`
+      - UI driver cu butoane operaționale (`Start cursă`, `Start așteptare`, `Continuă`, `Finalizează`)
+      - charge rule implementat: `<= freeWaitMinutes` fix only, `> freeWaitMinutes` fix + wait/minut (secundă-based)
+    - [x] Configurare tarife oprire/așteptare pe roluri:
+      - admin: global `pricing.executiveStopPricing`
+      - fleet: `executiveStopPricing` override în settings
+      - pfa: editor inline în `FinancialManagement` pe entități legale PFA
+      - driver: `stopFixedFee` + `freeWaitMinutes` în Premium rates
+    - [x] Build/compile verification după patch:
+      - `npm run build` PASS
+      - `python -m compileall backend/app` PASS
+    - [x] Clarificare explicită client privind modificarea tarifului final:
+      - notice în `RideOptions` (estimare vs tarif final)
+      - informare în `PrivateDriverProfile` cu prag minute + tarife
+      - card explicit + text de accept în `PremiumRideRequest`
+    - [x] Fix UI rezervare (fără overlap footer peste conținut):
+      - `PrivateDriverProfile`: ajustat bottom spacing pentru CTA fix
+      - `PremiumRideRequest`: ajustat spacing + detalii concrete pickup/destinație/tarif estimat
+      - deploy live pe `premium.private-driver.ro` + verificare automată vizibilitate
+    - [x] Fix hartă itinerariu cu opriri + marker stop numerotat:
+      - `MapView`: marker `stop` vizualizat ca cerc cu index (`1/2/3/...`, fallback `x`)
+      - `PremiumRideRequest`: normalizare `stops` (inclusiv `stop.location`) + `fitAllMarkers`
+      - deploy live pe `premium.private-driver.ro` + verificare automată marker text `1`
+    - [x] Fix centrare hartă pe itinerariu (fără altă localitate):
+      - `PremiumRideRequest`: normalizare robustă `pickup/destination` (string/nested) + center pe pickup valid
+      - `MapView` `FitBoundsHandler`: include toată polilinia rutei la recadrare
+      - deploy live + verificare automată (3 markere vizibile, route drawn)
+    - [x] Editare route points direct din `PremiumRideRequest`:
+      - adăugat controls pentru `Editează pickup`, `Editează destinație`, `Adaugă oprire`, `Editează/Șterge oprire`
+      - `DestinationSearch` extins cu mod premium (`premiumEditMode` + `returnTo`) pentru întoarcere cu state actualizat
+      - păstrare context rezervare (șofer selectat + estimare) după editări
+      - deploy live pe `premium.private-driver.ro`
+    - [x] Reordonare între pickup/opriri/destinație:
+      - `PremiumRideRequest`: acțiuni `Sus/Jos` + `Inversează pickup/destinație`
+      - mutare cross-boundary suportată (prima oprire <-> pickup, ultima oprire <-> destinație)
+      - route state rămâne coerent după fiecare mutare
+      - deploy live + verificare controale vizibile
+    - [x] Hotfix tarifare one-way pentru `trip_km` (fără retur):
+      - backend `calculate_executive_trip_quote` schimbat la formulă km-only (`distanceKm * perKmRate`)
+      - adăugat guard pentru waypoint-uri consecutive duplicate
+      - clarificare UI pasager (`PremiumRideRequest`, `PrivateDriverProfile`) că prețul este calculat doar pe dus
+      - deploy backend live + smoke estimate confirmat
+    - [x] Flow șofer: memento rezervare + start la timp + navigare externă:
+      - la confirmare rezervare: notificare driver `Memento rezervare creat` + metadata `driverReminder` pe booking
+      - reminder automat „Cursa este gata de pornire” emis din endpointul de active bookings la `scheduledStartAt <= now`
+      - `ExecutiveBookings`: `Start cursă` permis doar în fereastra de start (10 min înainte), cu countdown până atunci
+      - butoane navigare adăugate în card: `Google Maps` + `Waze` (pickup pre-start, next stop/destinație in-service)
+      - deploy backend+frontend pe `premium.private-driver.ro` + smoke test notificări
+    - [x] Flow refuz șofer cu rerouting automat:
+      - la `driver reject` booking-ul rămâne activ (`pending_confirmation`) și se pune înapoi în pool (nu se anulează)
+      - șoferul care a refuzat e exclus pentru acel booking (`rejectedDriverIds`)
+      - pasagerul primește mesaj clar `Șofer indisponibil` + redirecționare automată
+      - alți șoferi online eligibili primesc notificare de cerere disponibilă
+      - `PremiumRideRequest` afișează în pending mesaj că se caută alt șofer
+      - deploy backend+frontend + validare live (rejected driver hidden, alt driver sees booking)
+    - [x] Non-Stripe completion sweep (2026-02-28):
+      - message search endpoint + UI integration (`/api/conversations/search/messages`)
+      - canned responses CRUD + chat picker (`/api/support/canned-responses`)
+      - premium booking realtime status via Socket.IO (`executive_booking_status`) in `PremiumRideRequest`
+      - push diagnostics endpoints (`/api/notifications/push/health`, `/api/notifications/push/test-self`)
+      - cleanup legacy premium-instant orphan pages (deleted from `src/pages`)
+    - [x] Runtime hardening + alignment:
+      - fixed `notifications.py` request model order for `push/test-self`
+      - updated `project_map.py` legacy entries to redirect semantics
+      - updated AI docs (`BRAIN`, `TASKS`, `BRAINMAP`, `CHANGELOG_AI`, `DECISIONS`, `database`)
+
+## Completed Tasks (Recent)
+
+- **Playwright E2E Full Suite — 97/97 PASS** (2026-02-24)
+  - Status: completed
+  - Checklist:
+    - [x] Install `@playwright/test` + Chromium browser
+    - [x] Create `playwright.config.ts` (live server, 1 worker, smart auth caching)
+    - [x] Create `e2e/fixtures/` (users.ts, auth.setup.ts with TTL cache, base.ts with `getStoredToken`)
+    - [x] Create `e2e/api-smoke.spec.ts` (34 tests — health, RBAC, all 5 roles, fast ~16s)
+    - [x] Create `e2e/auth/login.spec.ts` (5 login flows + JWT verify + error cases)
+    - [x] Create `e2e/passenger/ride-request.spec.ts` (home, categories, ride request, history, profile)
+    - [x] Create `e2e/driver/ride-lifecycle.spec.ts` (home, earnings, history, settings, ride transitions)
+    - [x] Create `e2e/messaging/messaging.spec.ts` (3-role GET, create conversation, RBAC)
+    - [x] Create `e2e/support/tickets.spec.ts` (create, update status, RBAC guard)
+    - [x] Create `e2e/admin/dashboard.spec.ts` (dashboard, users, drivers, premium, settings, RBAC)
+    - [x] Update `package.json` with 9 `e2e:*` npm scripts
+    - [x] Fix auth system: all 5 roles authenticate via main `/login` (JWT, not RoleAuthPage/Supabase)
+    - [x] Fix `SecurityError`: `getStoredToken()` reads JWT from `.auth/<role>.json` (no `page.evaluate`)
+    - [x] Fix `waitForResponse` timeouts: converted to direct `request.get/put` API calls
+    - [x] Fix content-length thresholds (loading state = ~48 chars, not blank)
+    - [x] Final run: **97/97 PASS** in ~1m50s on `https://x.private-driver.ro`
+- **Fix passenger map visibility + wrong current location on `/v2/passenger/map-select`**
+  - Scope: restore visible map rendering and correct initial geolocation behavior (avoid stale home fallback when real GPS should be used).
+  - Status: completed
+  - Checklist:
+    - [x] Inspect map-select frontend flow (`MapSelect`, `MapView`, geolocation context).
+    - [x] Reproduce live behavior on `x.private-driver.ro` and capture map/tile/geolocation errors.
+    - [x] Patch map initialization/fallback logic to prioritize fresh GPS and safe map center.
+    - [x] Build and deploy to `x`.
+    - [x] Validate on live passenger account (`/v2/passenger/map-select`).
+  - Result (2026-02-22):
+    - Fixed map container collapse (`leaflet-container` was height `0`) by forcing viewport-height layout on page and minimum map area.
+    - Fixed stale location behavior by always attempting fresh geolocation lookup on map-select load (even when cached `lastKnownLocation` exists).
+    - Live deploy completed (`privatedriver-x-20260222-054555.tar.gz`), bundle `assets/index-BU5N6DYy.js`.
+    - Live validation:
+      - map container now renders (`height` non-zero, tiles loaded),
+      - stale `Casa Chiojdeni` cache is replaced by fresh GPS coordinates when geolocation permission is granted.
+
+- **Fix `403` on send message (`/api/conversations/{id}/messages`) in ride chat**
+  - Scope: remove false-negative message blocking for active rides and expose backend error reason in UI.
+  - Status: completed
+  - Checklist:
+    - [x] Trace backend condition that returns `403`.
+    - [x] Confirm ride status variants used by real flow (`arrived`, `waiting`, legacy `in_progress`).
+    - [x] Patch backend `can_send_message` to allow active status variants and safe completed timestamp parsing.
+    - [x] Patch frontend chat error handling to display API detail instead of generic failure.
+    - [x] Build and run targeted checks.
+    - [x] Deploy to `x` and re-test message send flow in browser.
+  - Result (2026-02-22):
+    - Deployed release `privatedriver-x-20260222-053530.tar.gz` on `x.private-driver.ro`.
+    - Confirmed active-ride chat can send on `arrived` status (`POST /api/conversations/{id}/messages` -> `200` in smoke test).
+    - Confirmed closed completed-ride conversation now returns explicit detail message (`403` with `Fereastra de mesagerie s-a inchis...`) instead of generic UI error.
+
+- **Provide server-side cleanup + full rebuild script for `x.private-driver.ro`**
+  - Scope: add a single script runnable directly on server to perform deep cleanup, full frontend rebuild, backend refresh, service restart, and health verification.
+  - Status: completed
+  - Checklist:
+    - [x] Create reusable server script with safe defaults for `x`.
+    - [x] Include backup step before cleanup/rebuild.
+    - [x] Include frontend clean rebuild (`npm ci` + `npm run build`) and dist sync.
+    - [x] Include backend cache cleanup and optional venv reinstall.
+    - [x] Include service restart + nginx reload + health checks.
+    - [x] Upload script to server and validate shell syntax.
+  - Result (2026-02-21):
+    - Added `ops/rebuild_x_server_full.sh`.
+    - Uploaded and enabled on server: `/var/www/x/rebuild_x_server_full.sh`.
+    - Script detects frontend source path (defaults include `/root/lovable-frontend`), creates backup, rebuilds, deploys, restarts, and verifies health.
+    - Script was executed once live; backend/service restart succeeded.
+    - Post-run script was improved with retry-based health checks to avoid false-negative immediate curl failures after restart.
+
+- **Hotfix passenger dashboard on `x`: menu search actions blocked + PWA manifest asset 404 noise**
+  - Scope: fix passenger Home interaction blockers (search/menu taps not working) and remove manifest references to missing assets that generate console/PWA errors.
+  - Status: in progress (rebuilt + redeployed on `x`; awaiting user browser confirmation)
+  - Checklist:
+    - [x] Reproduce/trace interaction blockers in passenger Home UI.
+    - [x] Verify layering/overlay conflicts (bottom sheet vs install/push banners).
+    - [x] Patch passenger dashboard interactivity so search/menu actions are clickable.
+    - [x] Patch PWA manifest config to stop 404s for missing icons/screenshots.
+    - [x] Build + deploy to `x`.
+    - [x] Re-verify live (`/v2/passenger`) and confirm console is clean of current 404 manifest errors.
+  - Root cause:
+    - `CookieConsentBanner` (`fixed bottom`, `z-[100]`) overlaid the passenger bottom sheet area and intercepted real clicks on `Unde mergem?` and related menu actions.
+    - PWA manifest in `vite.config.ts` referenced missing files (`icon-128x128.png`, `shortcut-*.png`, `screenshots/*`), generating repeated 404 console errors.
+  - Result (2026-02-21):
+    - `CookieConsentBanner` moved to top on ride dashboards (`/v2/passenger`, `/v2/driver`), no longer blocking search menu area.
+    - Passenger/driver home install/push banners moved to top (`className` overrides) to avoid overlap with bottom-sheet actions.
+    - Manifest updated to existing icon assets and removed stale screenshots references.
+    - Backward-compat static aliases created on live `x` for old cached manifest paths (`/icons/icon-128x128.png`, `/icons/shortcut-*.png`, `/screenshots/*.png`) so stale clients no longer hit 404.
+    - Automated live click check (real mouse click, not DOM `.click()`): collapsed search button and pickup action now navigate successfully to `/v2/passenger/search`.
+    - Rebuild/redeploy follow-up:
+      - Added SW immediate activation in `vite.config.ts` (`workbox.skipWaiting=true`, `workbox.clientsClaim=true`) to reduce stale bundle retention on clients.
+      - Hardened dashboard route match in cookie banner (`/^\/v2\/(passenger|driver)(\/|$)/`) so trailing slash variants are also covered.
+      - Deployed new live bundle: `assets/index-Chw4cKxr.js`.
+
+- **Hotfix passenger dashboard on `x`: push activation + address search click blocked**
+  - Scope: diagnose and fix why push notifications do not activate and why passenger cannot click search area to start ride.
+  - Status: in progress (server + code fixes deployed; awaiting final manual browser confirmation)
+  - Checklist:
+    - [x] Reproduce both issues live on `https://x.private-driver.ro` (network + console + UI behavior).
+    - [x] Identify root cause for push activation failure (`SW/register`, auth, VAPID, endpoint, permissions).
+    - [x] Identify root cause for blocked address search click in passenger dashboard.
+    - [x] Implement minimal safe fixes in frontend/backend/nginx as required.
+    - [x] Build + deploy to `x`.
+    - [ ] Re-verify both flows end-to-end on live (final browser tap test pending on user device).
+  - Root cause:
+    - Push activation failed because `/api/notifications/vapid-public-key` returned `503` (`VAPID_*` keys missing in `/var/www/x/backend/.env`).
+    - Passenger Home used `allowDragFromContent` on `DraggableBottomSheet`, rendering an absolute drag overlay over the top content area and intercepting clicks in address-search controls.
+  - Result (2026-02-21):
+    - Added `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_EMAIL` in `/var/www/x/backend/.env`, restarted `privatedriver-x`.
+    - `GET https://x.private-driver.ro/api/notifications/vapid-public-key` now returns `200` with public key.
+    - Removed `allowDragFromContent` from `src/pages/passenger/Home.tsx` and redeployed frontend bundle (`assets/index-DlvPLUIc.js` on live).
+    - Passenger dashboard API smoke (saved places/categories/payments/notifications/messages/nearby drivers) returns `200` on live.
+
+- **Complete profile/reviews/messaging usability pass (user + driver)**
+  - Scope: make reviews visible (anonymized) for passenger and driver, enable profile photo upload for both roles, add back button in passenger messages page, and verify account data integrity after profile edits.
+  - Status: in progress
+  - Execution note (2026-02-21): implementation started for backend endpoints + frontend profile/message wiring.
+  - Checklist:
+    - [x] Audit existing rating/review storage and expose read endpoints for both roles.
+    - [x] Connect passenger/driver profile UIs to show rating change context via reviews list.
+    - [x] Implement profile avatar upload flow for passenger + driver pages.
+    - [x] Add back button on `/v2/passenger/messages`.
+    - [x] Verify profile updates (name changes) do not affect rides/history ownership.
+    - [x] Build local (frontend + backend compile checks).
+    - [x] Deploy to `x.private-driver.ro`.
+    - [x] Run targeted live API checks (`/api/user/reviews`, `/api/driver/reviews`, `/api/uploads/profile-image`, profile image URL serve).
+    - [ ] Run manual browser UI pass for final visual confirmation (profile pages + passenger messages back button).
+
+- **Fix remaining runtime warnings in passenger ride flow (DialogTitle + geolocation timeout noise)**
+  - Scope: remove accessibility warning (`DialogContent` missing `DialogTitle`) and harden geolocation timeout behavior so console noise does not repeat during active ride.
+  - Status: completed
+  - Checklist:
+    - [x] Identify the dialog component rendered in ride flow without `DialogTitle`.
+    - [x] Patch component with accessible title (hidden if needed).
+    - [x] Identify geolocation call path causing repeated timeout in passenger flow.
+    - [x] Apply fallback/timeout handling to reduce repeated errors.
+    - [x] Build and verify no regression.
+  - Root cause:
+    - Passenger chat sheets (`SheetContent`) in `DriverMatched` and `RideInProgress` had `SheetDescription` but no `SheetTitle`, triggering Radix accessibility warning.
+    - `MapView` logged geolocation timeout (`code=3`) as warning, creating noisy console messages during normal timeout scenarios.
+  - Result:
+    - Added hidden `SheetTitle` in both passenger chat sheets.
+    - Suppressed timeout-only geolocation warnings in `MapView` (still warns on real errors).
+    - Local build passed and fix deployed on `x` with release `privatedriver-x-20260221-205626.tar.gz`.
+    - Live bundle now serves `assets/index-CxqLwOx0.js`.
+
+- **Clear client-side SSL/SW stale state after x TLS fix**
+  - Scope: validate if `SecurityError` on `navigator.serviceWorker.register('/sw.js')` is server-side or browser stale cert/HSTS cache.
+  - Status: in progress
+  - Checklist:
+    - [x] Re-validate TLS + `sw.js` over HTTPS without insecure flags from local machine.
+    - [x] Confirm DNS points only to expected `A` record for `x.private-driver.ro`.
+    - [x] Verify trusted fetch using PowerShell/.NET stack (no trust bypass).
+    - [ ] Execute browser-local cleanup (site data/HSTS/SSL state) and re-test push activation.
+  - Current findings:
+    - `curl` to `https://x.private-driver.ro/sw.js` returns `200` with normal TLS validation.
+    - `Invoke-WebRequest https://x.private-driver.ro/sw.js` returns `OK 200` (no SSL trust error).
+    - DNS currently resolves only `A 116.203.80.227`; no `AAAA`.
+    - Remaining `SecurityError` is likely stale browser SSL/service-worker state from period when cert mapping was wrong.
+
+- **Fix TLS/redirect mismatch for `x.private-driver.ro` (cert from `private-driver.ro` + wrong redirect target)**
+  - Scope: diagnose and repair Nginx TLS + redirect routing so `x.private-driver.ro` serves its own certificate and stays on `x` host.
+  - Status: completed
+  - Checklist:
+    - [x] Inspect live TLS certificate served for `x.private-driver.ro` (SNI + host behavior).
+    - [x] Audit active Nginx site configs for conflicting `server_name` / `return 301` rules.
+    - [x] Apply minimal safe Nginx config fix on server.
+    - [x] Reload Nginx and validate cert CN/SAN + redirect chain for `x.private-driver.ro`.
+    - [x] Confirm app/API remain reachable on `x` after fix.
+  - Root cause:
+    - `/etc/nginx/sites-available/x.private-driver.ro` was overwritten with HTTP-only config (`listen 80` only).
+    - HTTPS requests for `x.private-driver.ro` were handled by default 443 vhost (`private-driver.ro`) and returned wrong certificate/content.
+  - Result:
+    - `x.private-driver.ro` now has dedicated `443 ssl` server block with cert `CN=x.private-driver.ro`.
+    - HTTP now redirects to `https://x.private-driver.ro/` (not to `private-driver.ro`).
+    - Verified:
+      - `openssl s_client ... -servername x.private-driver.ro` => `subject=CN = x.private-driver.ro`.
+      - `curl -I https://x.private-driver.ro` => `200`.
+      - `curl -I http://x.private-driver.ro` => `Location: https://x.private-driver.ro/`.
+    - Prevention:
+      - Updated `ops/deploy_x_server.sh` to always enforce TLS nginx config when cert files exist, even when certbot issuance is skipped.
+
+- **Fix push notification device registration (`401` on `/api/notifications/register`)**
+  - Scope: diagnose and fix auth/path mismatch for web push device registration on `x.private-driver.ro`.
+  - Status: completed
+  - Checklist:
+    - [x] Reproduce or inspect frontend request headers/body for register call.
+    - [x] Validate backend route auth expectations for `/api/notifications/register`.
+    - [x] Implement fix in frontend/backend (whichever is incorrect) without breaking existing notifications APIs.
+    - [x] Run build/verification and document exact root cause + outcome.
+    - [x] Deploy fix to `x` if local validation passes.
+  - Root cause:
+    - Frontend `usePushNotifications` called `/api/notifications/register` and `/api/notifications/unregister` without `Authorization` header, while backend enforces JWT on both routes.
+  - Result:
+    - Frontend now sends bearer token for register/unregister.
+    - Backend unregister now supports endpoint fallback when `device_id` is non-ObjectId (legacy `updated` case).
+    - Local checks passed: `npm run build`, `python -m py_compile backend/app/routes/notifications.py`.
+    - Deployed to `x` (`release/privatedriver-x-20260221-193724.tar.gz`) and verified live on backend service:
+      - `POST http://127.0.0.1:8898/api/notifications/register` with token -> `{"success":true,...}`.
+
+- **Configure Google OAuth env on `x.private-driver.ro`**
+  - Scope: apply provided Google OAuth credentials in `/var/www/x/backend/.env`, restart backend, and verify OAuth endpoint behavior.
+  - Status: completed
+  - Checklist:
+    - [x] Set `GOOGLE_CLIENT_ID` in x backend env.
+    - [x] Set `GOOGLE_REDIRECT_URI` for x callback.
+    - [x] Restart `privatedriver-x` and verify `/api/auth/google/url`.
+    - [x] Confirm if `GOOGLE_CLIENT_SECRET` is still missing.
+  - Current status details:
+    - `GOOGLE_CLIENT_ID`: set (updated to latest provided value).
+    - `GOOGLE_REDIRECT_URI`: set (`https://x.private-driver.ro/api/auth/google/callback`).
+    - `GOOGLE_CLIENT_SECRET`: set.
+    - Endpoint `/api/auth/google/url` now returns `200` and valid Google OAuth URL.
+
+- **Deploy latest implementation to `x.private-driver.ro` and validate live**
+  - Scope: publish current local changes (frontend + backend) to `x` stack and confirm critical flows are healthy in production-like environment.
+  - Status: completed (with one config blocker)
+  - Checklist:
+    - [x] Build latest frontend bundle.
+    - [x] Deploy updated backend files to `/var/www/x/backend` and restart `privatedriver-x`.
+    - [x] Deploy updated frontend `dist` to `/var/www/x/dist`.
+    - [x] Verify health endpoint and critical changed APIs on `x`.
+    - [x] Run focused live smoke checks for OAuth, queue, next-ride queue, stop/wait pricing related endpoints.
+  - Live results:
+    - `privatedriver-x` service active after deploy; backend health OK (`/api/health`).
+    - SSL for `x.private-driver.ro` corrected (dedicated cert re-deployed via certbot; local TLS checks now pass).
+    - FP4 verified: estimate returns `stops` + `waitPricing` metadata with expected values.
+    - FP3 verified: second ride acceptance while first ride active returns `queued=true`; queued ride auto-activates on completion (`activatedNextRideId` present; booking status becomes `matched`).
+    - FP2 partially verified: booking status returns queue metadata and retry countdown; state observed `drivers_notified` in test run.
+    - OAuth blocker: `GET /api/auth/google/url` returns `500` on `x` because backend env is missing `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`.
+
+- **Execution in order: full local build + remaining feature gaps**
+  - Scope: complete local toolchain/bootstrap first (`node_modules`, Vite build), then implement remaining high-priority gaps in sequence.
+  - Status: completed
+  - Planned order:
+    - [x] Bootstrap local frontend build (`npm install`, `npm run build`) and capture blocking errors.
+    - [x] Apply security hygiene for local env handling (`.env*` ignore + safe examples).
+    - [x] Implement Google OAuth flow (frontend + backend endpoints/config wiring).
+    - [x] Implement message image attach end-to-end (upload/send/render in active chat flows).
+    - [x] Implement queue-related features FP2/FP3/FP4 with validation pass.
+    - [x] Re-run full build and verification after changes.
+  - Progress note:
+    - Frontend bootstrap completed locally: `node_modules` installed and `vite build` passes.
+    - Observed non-blocking warnings: large JS chunk size (>500kB) and 20 npm audit vulnerabilities (dependency-level, not build blockers).
+    - Env security hygiene applied: `.env*` ignore rules + root/backend `.env.example` templates updated.
+    - OAuth Google implemented through backend callback (`/api/auth/google/callback`) + frontend role auth hash-session restore.
+    - Active chat (`ChatDetail`) now supports image upload (`/api/uploads/message-image`) and image/location message rendering.
+    - FP2 implemented: booking search queue metadata + auto-retry from booking status polling.
+    - FP3 implemented: driver can queue next ride while current is active; queued ride auto-activates on completion/cancel.
+    - FP4 implemented: stop/wait pricing now reads pricing config (`waitStartFee`, `quickStopFee`, `waitMinuteFee`) and estimate includes stop fees.
+    - Validation run: `npm run build` passes after all changes; backend compile/run checks remain blocked locally because `python` is missing from PATH.
+
+- **Project audit on Hetzner - what remains to be done**
+  - Scope: verify current project status from docs + code and produce a prioritized remaining-work list for the Hetzner deployment.
+  - Status: completed
+  - Checks:
+    - [x] Re-read AI memory (`ai/BRAIN.md`, `ai/TASKS.md`, bug trackers).
+    - [x] Scan codebase for open TODO/FIXME/placeholders and feature gaps.
+    - [x] Validate key roadmap items against implementation (Stripe, Google OAuth, push, queue features).
+    - [x] Check local verification capability (frontend build/backend tests prerequisites).
+    - [x] Extract prioritized remaining work list for execution.
+  - Findings (summary):
+    - Google OAuth is still placeholder in UI and no backend OAuth flow is present.
+    - Queue-related requested features (FP2/FP3/FP4) are not implemented in code.
+    - Message image attachment is not wired end-to-end in active chat flows.
+    - Push/web-push stack exists in code but production setup depends on HTTPS + VAPID/server config.
+    - Security risk: real secrets exist in `.env` files in workspace; `.gitignore` does not currently ignore `.env*`.
+    - Local validation is currently blocked on this machine by missing local runtime setup (`node_modules`, usable Python runtime in PATH).
+
+- **Operate on smart-promotions via Pageant + plink (`smartpro`)**
+  - Scope: execute remote operations on `smart-promotions.ro:8888` as `smartpro` using Pageant-loaded key auth.
+  - Status: in progress
+  - Checks:
+    - [x] Verify Pageant-backed authentication using `plink`.
+    - [x] Verify remote identity and host (`whoami`, `hostname`).
+    - [x] Persist smart-promotions connection notes in global Codex context (cross-project).
+    - [ ] Run next user-requested remote commands via `plink`.
+  - Notes:
+    - Pageant key path provided by user: `C:\Users\nicus\.ssh\smart-promotions.ppk`.
+    - `plink` succeeds to `smartpro@smart-promotions.ro:8888`.
+    - OpenSSH `ssh.exe` in this environment does not see an agent pipe (`\\.\pipe\openssh-ssh-agent`), so it cannot currently use the Pageant-loaded key directly.
+
+- **Convert PPK key to OpenSSH for smart-promotions (optional fallback)**
+  - Scope: convert `~/.ssh/smart-promotions.ppk` to OpenSSH private key only if `ssh.exe` compatibility is required.
+  - Status: deferred
+  - Checks:
+    - [x] Verify conversion tool availability (`puttygen`/alternative).
+    - [ ] Convert `.ppk` to OpenSSH private key file. (deferred)
+    - [ ] Set safe local file permissions and test SSH login with `ssh.exe`.
+  - Notes:
+    - Key file is encrypted (`Encryption: aes256-cbc`, `Argon2id`).
+    - OpenSSH cannot use `.ppk` directly.
+    - `WinSCP /keygen` supports conversion to `.ppk` (not export to OpenSSH private key).
+    - Available Windows `puttygen.exe` builds in this environment did not produce non-interactive OpenSSH export output.
+
+- **SSH key audit for smart-promotions.ro (all local keys)**
+  - Scope: verify which keys from `~/.ssh` can authenticate `smartpro@smart-promotions.ro` on port `8888`.
+  - Status: completed
+  - Checks:
+    - [x] Confirm SSH endpoint availability (`smart-promotions.ro:8888`).
+    - [x] Enumerate local private keys and test each with `ssh -i`.
+    - [x] Report accepted/rejected keys and auth method limits (publickey/password).
+  - Result:
+    - `id_rsa` rejected for `smartpro`.
+    - `.ppk` files are not usable directly by OpenSSH here (`invalid format`).
+    - Server allows key-based auth only (password auth not enabled for this user/session).
+
+- **Local copy completeness verification (workspace integrity)**
+  - Scope: verify if the current folder contains a usable full project copy.
+  - Status: in progress
+  - Checks:
+    - [x] Read AI memory context (`ai/BRAIN.md`, `ai/TASKS.md`).
+    - [x] Verify repository metadata availability (`.git` presence).
+    - [x] Run frontend build (`npm run build`) for missing-file detection.
+    - [x] Run backend syntax/import checks (`python -m compileall backend/app`, `from app.main import app`).
+    - [ ] Confirm source baseline path from user for exact 1:1 copy comparison (currently impossible without source reference).
+
+## Post-Deploy Backend Checklist (Fleet)
+- [x] Deploy latest backend code (includes `backend/app/routes/fleet.py` fixes and Fleet maintenance endpoint).
+- [x] Verify `GET /api/fleet/settings` for `fleet.user@private-driver.ro` returns `200` (not `404/500`).
+- [x] Verify `POST /api/fleet/vehicles/{vehicle_number}/maintenance` returns `200` on live.
+- [x] Re-run Fleet CRUD smoke:
+  - [x] driver availability update + rollback
+  - [x] vehicle update
+  - [x] vehicle assign/unassign driver
+  - [x] vehicle status maintenance -> active rollback
+  - [x] vehicle maintenance create
+- [x] Confirm Fleet Support flow still works:
+  - [x] create ticket
+  - [x] open `/fleet/support/:ticketId` detail and chat
+- [x] Cleanup smoke artifacts if needed (`SMOKE-*` vehicle and `fleet.smoke.*` user).
+- [x] Verify Driver alias route fix:
+  - [x] `GET /api/driver/rides/history` returns `200` (not `400 Invalid ride ID`).
+- [x] Quick Passenger sanity re-check (post deploy):
+  - [x] `GET /api/rider/rides`, `GET /api/rides/categories`, `GET /api/payments/methods` all return `200`.
+- [x] Verify Passenger saved places create response:
+  - [x] `POST /api/saved-places` returns `200`.
+  - [x] No serialization 500 observed in post-fix smoke.
+- [x] Verify support ticket chat linkage for driver/passenger:
+  - [x] `GET /api/support/tickets/{id}` returns `conversation_id` for newly created ticket.
+
+## Completed Tasks (Recent → Old)
+
+- [x] (2026-02-19) **x Messaging UI Live Audit (Playwright) — Client/Driver/Support**
+  - Scope: full UI validation for requested messaging pairs on `x.private-driver.ro`:
+    - client ↔ driver
+    - client ↔ support
+    - driver ↔ support
+  - Method:
+    - Added reproducible audit script: `ai/ui_messaging_audit_playwright.cjs`
+    - Ran headless Playwright against live `x` via:
+      - `npx -y -p playwright@1.53.0 node ai/ui_messaging_audit_playwright.cjs`
+  - Coverage validated in UI:
+    - direct conversations: open from list, send message, receive reply on opposite role page
+    - support ticket conversations: support reply in ticket detail, visibility for user/driver in messages page
+  - Result:
+    - `11/11 PASS` (no UI messaging regressions found in tested scope)
+    - no failure screenshots generated
+  - Cleanup:
+    - audit-created support tickets auto-closed by script.
+
+- [x] (2026-02-19) **x Messaging System Full Audit (User-Driver, User-Support, Driver-Support)**
+  - Scope: verify end-to-end messaging flows for requested pairs on `x.private-driver.ro`.
+  - Validation coverage:
+    - `user <-> driver` direct conversation: create/get conversation, send both directions, fetch, mark read.
+    - `user <-> support` ticket-linked conversation: ticket create, `conversation_id` linkage, send both directions, fetch, mark read.
+    - `driver <-> support` ticket-linked conversation: same flow as above.
+    - direct checks also executed: `user <-> support` and `driver <-> support` direct conversations (non-ticket).
+    - permission isolation checks:
+      - user cannot open driver ticket (`403`)
+      - driver cannot open user ticket (`403`)
+      - user cannot read driver-support conversation (`403`)
+      - driver cannot read user-support conversation (`403`)
+      - support can read both (`200`)
+  - Live results:
+    - Main messaging smoke: `30/30 PASS`
+    - Security/isolation smoke: `10/10 PASS`
+  - Cleanup:
+    - all audit-created support tickets closed via support endpoint.
+
+- [x] (2026-02-18) **x Fleet + Nearby Drivers Remaining Fixes — Final 500 Cleanup**
+  - Scope: remove final backend blockers discovered in Fleet CRUD smoke and passenger nearby-drivers flow on `x`
+  - Root causes:
+    - `PUT /api/fleet/drivers/{id}` returned `500` due strict `DriverResponse` validation when legacy driver docs missed required fields (`vehicleNumber`).
+    - `GET /api/fleet/vehicles/{vehicle_number}` returned `500` due raw Mongo `ObjectId` in response payload.
+    - `GET /api/rides/nearby-drivers` could return `500` (`KeyError: vehicleNumber`) for legacy driver docs without `vehicleNumber`.
+  - Code changes (`backend/app/routes/fleet.py`):
+    - Added `_driver_response_payload()` to normalize driver docs to `DriverResponse` contract with safe defaults.
+    - Hardened `update_fleet_driver()`:
+      - validates `driver_id` format (`400` on invalid),
+      - returns normalized payload instead of raw Mongo doc.
+    - Updated `get_fleet_vehicle_detail()` to return `_json_safe(vehicle)` and explicit string `id`.
+  - Code changes (`backend/app/services/ride_matching.py`):
+    - Hardened `find_nearby_drivers()` against missing fields/legacy IDs:
+      - safe `vehicleType`/`vehicleNumber` fallbacks,
+      - robust `userId` lookup (`_id` or `id`),
+      - skip invalid `currentLocation` payloads instead of crashing.
+  - Deploy (`x`):
+    - Uploaded patched `fleet.py` to `/var/www/x/backend/app/routes/fleet.py`
+    - Uploaded patched `ride_matching.py` to `/var/www/x/backend/app/services/ride_matching.py`
+    - Restarted `privatedriver-x` and verified health.
+  - Live verification:
+    - Fleet CRUD smoke now passes `11/11` (including availability update+rollback and vehicle detail/update).
+    - Passenger `GET /api/rides/nearby-drivers` now returns `200` with driver list (no `KeyError`).
+    - Cross-role mini smoke on `x` passes `18/18`.
+    - Cleaned smoke vehicles (`SMOKE-X-001`, `SMOKE-X-37545`, `SMOKE-X-37668`) via admin fleet endpoint.
+
+- [x] (2026-02-18) **x Hotfix — Driver Language Route + Theme Toggle Sync + Cancel Re-broadcast Hardening**
+  - Scope: repair issues found in live passenger/driver audit on `x.private-driver.ro` without breaking ride flow
+  - Done when: driver can open language settings, dark/light toggle changes theme on first click, and ride cancel no longer returns transient 500
+  - Code changes:
+    - Frontend:
+      - `src/pages/passenger/Settings.tsx`: switched theme source from `AppContext` to `ThemeContext`
+      - `src/pages/driver/Settings.tsx`: switched theme source from `AppContext` to `ThemeContext`; language nav changed to `/v2/driver/language`
+      - `src/App.tsx`: added protected driver route `"/v2/driver/language"` (role: `driver`) using existing `PassengerLanguageSettings`
+    - Backend:
+      - `backend/app/routes/driver.py`: hardened cancelled ride re-broadcast block with defensive `try/except`, safe passenger user lookup, and non-fatal emit failures
+  - Deployment (`x`):
+    - Uploaded patched backend file to `/var/www/x/backend/app/routes/driver.py`
+    - Uploaded rebuilt frontend `dist` to `/var/www/x/dist`
+    - Restarted `privatedriver-x` and verified health
+  - Live re-validation (`x`):
+    - Driver language button now opens: `https://x.private-driver.ro/v2/driver/language`
+    - Theme first toggle now works for both roles (`light -> dark` on first click)
+    - New ride flow cancel test now returns `200` on first cancel call
+
+- [x] (2026-02-18) **x Live Audit — Passenger + Driver (Rides, Map, Theme, Language)**
+  - Scope: verify online core flow requested now: passenger request ride, driver takes ride, map availability, language toggle, light/dark toggle
+  - Done when: live checks executed on `https://x.private-driver.ro` for both roles with API + UI validation
+  - Notes:
+    - API E2E (`x`):
+      - passenger login + driver login -> `200`
+      - driver set online + location -> `200`
+      - passenger nearby drivers -> `count >= 1`
+      - passenger `POST /api/rides/request` -> `200`
+      - driver sees request in `GET /api/driver/ride-requests` and accepts `POST /api/driver/ride/{bookingId}/accept` -> `200`
+      - passenger booking status -> `matched` with driver info
+      - ride details `GET /api/rides/{rideId}` -> `200`
+    - UI live checks (`x`):
+      - Passenger map: Leaflet container + OSM tiles present on `/v2/passenger/map-select`
+      - Driver map: Leaflet container + Carto tiles present on `/v2/driver` (active ride path)
+      - Passenger language toggle: `ro -> en` works (`document.documentElement.lang` changed)
+      - **Theme toggle desync (PASSENGER + DRIVER):** settings switch initial state is out of sync with real page theme (`aria-checked=true` while page is light). First toggle often appears no-op; second toggle applies class correctly.
+      - **Driver language issue: driver cannot access language page; settings links to `/v2/passenger/language` but route is guarded for `user` role only**
+    - Follow-up needed:
+      1. Unify theme source (`AppContext` vs `ThemeContext`) so dark/light switch changes effective theme.
+      2. Add driver language route (or shared route) and fix navigation target from driver settings.
+
+- [x] (2026-02-18) **x Backend Fix — Saved Places 500 Serialization Error**
+  - Scope: fix `POST /api/saved-places` returning `500` while still inserting records
+  - Done when: endpoint returns `200` and response is fully serializable
+  - Notes:
+    - Root cause: `_id` (`ObjectId`) injected by PyMongo into inserted doc; response serialization failed with `PydanticSerializationError`.
+    - Code fix in `backend/app/routes/saved_places.py`:
+      - Added `_serialize_place_doc()` to normalize Mongo docs (`_id` -> `id` string)
+      - Updated create/update/list responses to always return serialized docs
+      - Replaced deprecated `.dict()` calls with `.model_dump()`
+    - Deployed patched file to `x` backend and restarted `privatedriver-x`.
+    - Verification on `https://x.private-driver.ro`:
+      - `GET /api/driver/rides/history` -> `200`
+      - `POST /api/saved-places` -> `200` (no 500)
+      - `GET /api/support/tickets/{id}` for new passenger ticket includes `conversation_id`
+    - Cleanup performed for test saved places/tickets.
+
+- [x] (2026-02-18) **x.private-driver.ro Deployment (Local + Ubuntu Server)**
+  - Scope: prepare local release artifacts, deploy isolated stack in `/var/www/x`, wire domain + SSL, and validate runtime
+  - Done when: `x.private-driver.ro` serves frontend over HTTPS and backend service is healthy behind Nginx
+  - Notes:
+    - Local deliverables added:
+      - `ops/prepare_x_release.ps1` (build + package release archive)
+      - `ops/deploy_x_server.sh` (Ubuntu deploy in `/var/www/x`, systemd + nginx + certbot)
+      - `ops/DEPLOY_X.md` (copy/paste runbook)
+    - Release archives produced:
+      - `release/privatedriver-x-20260218-151439.tar.gz`
+      - `release/privatedriver-x-20260218-152221.tar.gz` (final, with improved Mongo auto-detection in deploy script)
+    - Server rollout executed:
+      - Uploaded archive to `/tmp`
+      - Deployed to `/var/www/x`
+      - Created `systemd` service `privatedriver-x` on port `8898`
+      - Configured Nginx vhost `x.private-driver.ro`
+      - SSL certificate issued by certbot (valid until 2026-05-19)
+    - Runtime verification:
+      - `https://x.private-driver.ro` -> `HTTP/2 200`
+      - `https://x.private-driver.ro/api/health` -> healthy
+      - Auth login works for `test.admin`, `test.driver`, `test.passenger`
+    - Targeted behavior checks on `x`:
+      - `GET /api/driver/rides/history` -> `200` (fixed)
+      - Support ticket detail includes `conversation_id` (fixed)
+      - `POST /api/saved-places` still `500` with insert side-effect (still pending backend fix)
+
+- [x] (2026-02-18) **Driver + Passenger Full Live Audit Refresh (Complete, End-to-End)**
+  - Scope: fresh live API re-audit for both roles (rides, messaging, notifications, support, payments, permissions) with cleanup
+  - Done when: all critical read/write-safe flows are re-validated on live and blockers are separated from false negatives
+  - Notes:
+    - Base URL: `http://v4-full.private-driver.ro:8888`
+    - Fresh run timestamp: `2026-02-18T12:25:25Z`
+    - Raw run results: Driver **34/35 PASS**, Passenger **33/35 PASS**, Auth **3/3 PASS**, Cleanup **5/5 PASS**
+    - Retest adjustments:
+      - Passenger fare estimate works via `POST /api/user/ride/calculate-fare` (`200`)
+      - `POST /api/saved-places` retested with valid `type: favorite` still fails with `500`, but data is inserted (side effect confirmed)
+    - Confirmed working:
+      - Driver: profile/home/history/rides/ride-requests/active-ride/premium-dashboard/payouts/settings/status/location/help/vehicle requirements/notifications/conversations/support ticket create+detail
+      - Passenger: profile/rides/categories/nearby/request+status+cancel/payments CRUD/promotions/notifications/conversations/support ticket create+detail
+      - Cross-role messaging: conversation create + send message for both driver and passenger (to admin) works
+      - Permission guards: driver/passenger correctly blocked (`403`) from admin/fleet/support privileged endpoints
+    - Real blockers still present on live:
+      1. `GET /api/driver/rides/history` -> `400 {"detail":"Invalid ride ID"}`
+      2. `POST /api/saved-places` -> `500` while still inserting record (duplicate risk on retry)
+      3. `GET /api/support/tickets/{id}` for new driver/passenger tickets returns `conversation_id: null` (confirmed also from admin view)
+    - Cleanup done:
+      - Closed audit-created support tickets
+      - Deleted temporary payment method(s)
+      - Deleted temporary saved-place insert(s)
+      - Deleted temporary audit messages
+
+- [x] (2026-02-18) **Driver + Passenger Full Live Audit (Messaging, Notifications, Rides, Payments, Support)**
+  - Scope: End-to-end API audit for both roles including read/write-safe operations and cleanup
+  - Done when: Core functional areas are verified: profile/settings, ride flows, messaging, notifications, support, payments, saved places, premium/private driver browsing
+  - Notes: Live audit results:
+    - Driver: **39/41 PASS**
+    - Passenger: **31/32 PASS**
+    - Admin cleanup: **3/3 PASS**
+    - Confirmed working:
+      - Driver: profile/home/earnings/history, status/location/settings/profile writes, payouts balance, docs, help, notifications list/preferences/mark/clear, conversations read path, support ticket create/detail.
+      - Passenger: rides list/categories/nearby/estimate, ride request + booking status + cancel, payment methods add/set-default/delete, notifications list/preferences/mark/clear, promotions list, support ticket create/detail.
+      - Messaging E2E for both roles validated via direct conversation creation (`/api/conversations`) + send + delete message cleanup.
+    - Findings:
+      1. `GET /api/driver/rides/history` still `400 Invalid ride ID` on live (route shadowing issue; local fix already added in `backend/app/routes/driver.py`).
+      2. `POST /api/saved-places` returns `500` on live but **still inserts records** (high risk for duplicate user data on client retry).
+      3. Driver send message in old ride-linked conversation returned `403` with closed messaging window (business-rule expected, not a backend crash).
+      4. New support tickets for driver/passenger returned no `conversation_id` in detail on live (chat linkage gap).
+    - Cleanup done:
+      - Closed audit tickets via admin.
+      - Deleted temporary payment methods/messages.
+      - Deleted saved places created during audit (`Audit*`).
+
+- [x] (2026-02-18) **Driver + Passenger Live Audit (API)**
+  - Scope: Validate critical read/write-safe flows for driver and passenger accounts on live API
+  - Done when: Key endpoints for both roles are tested and failures are triaged
+  - Notes: Live smoke results: Driver **14/15 PASS**, Passenger **16/16 PASS**. Single Driver failure: `GET /api/driver/rides/history` returned `400 {"detail":"Invalid ride ID"}` because it is shadowed by dynamic route `/api/driver/rides/{ride_id}`. Local fix applied in `backend/app/routes/driver.py`: added explicit alias endpoint `GET /api/driver/rides/history` before dynamic route. `python -m py_compile backend/app/routes/driver.py` passed (pending deploy).
+
+- [x] (2026-02-18) **Fleet Bootstrap + CRUD Smoke (Live)**
+  - Scope: Bootstrap `fleet.user` for practical Fleet testing and validate CRUD safety paths
+  - Done when: `fleet.user` can list/use fleet drivers and vehicles, and core write actions are verified
+  - Notes: Set `fleet.user` `fleetId` via admin DB Explorer (final value: `69855ff0300f36bce38a03b6`), created a seed driver user (`fleet.smoke.20260218111620@private-driver.ro`), added driver via `POST /api/fleet/drivers`, created/updated/assigned/status-toggled vehicle (`SMOKE-111620`) via fleet endpoints. Live CRUD smoke rerun: 9/10 PASS (only `POST /api/fleet/vehicles/{vehicle_number}/maintenance` = 404 on live backend version). Verified maintenance write path using admin endpoint `POST /api/admin/fleet/vehicles/{vehicle_id}/maintenance` (PASS). Also patched local backend code in `backend/app/routes/fleet.py` to handle non-ObjectId `fleetId` in `/api/fleet/settings` with fleet auto-provision fallback (pending deploy).
+
+- [x] (2026-02-18) **Fleet Live Smoke Test (API)**
+  - Scope: Validate Fleet dashboard backend flows on live API using `fleet_manager` credentials
+  - Done when: Fleet core endpoints + Fleet Support create/detail flow are exercised and results documented
+  - Notes: Ran live smoke against `http://v4-full.private-driver.ro:8888` with `fleet.user@private-driver.ro`. Checks passed for login, `fleet/stats`, `fleet/drivers`, `fleet/vehicles`, `fleet/trips`, support tickets list/create/detail. Observed blocker: `fleet.user` has `fleetId=null`, so `GET /api/fleet/settings` returns `404` and drivers/vehicles are empty (count 0). Cleanup performed: smoke ticket `69959d9472eb3132e9a86e69` was closed via admin status update.
+
+- [x] (2026-02-18) **Fleet Dashboard Hardening (Driver + Vehicle + Support Flows)**
+  - Scope: Align fleet capabilities with driver data and make core fleet actions functional end-to-end
+  - Done when: Fleet driver detail/list uses real backend aggregates + docs/premium flags, vehicle detail actions are real API calls, and fleet support has ticket detail navigation
+  - Notes: Added fleet backend endpoints for driver detail (`GET /api/fleet/drivers/{id}`), vehicle detail (`GET /api/fleet/vehicles/{vehicleNumber}`), and vehicle maintenance scheduling (`POST /api/fleet/vehicles/{vehicleNumber}/maintenance`). Updated fleet frontend pages (`Drivers`, `DriverDetail`, `VehicleDetail`, `Support`) and wired support detail route in `src/App.tsx` (`/fleet/support/:ticketId`). Validation passed: `python -m py_compile backend/app/routes/fleet.py` and `npm run build`.
+
+- [x] (2026-02-18) **Support Dashboard Deep Audit + Hardening**
+  - Scope: Detailed support dashboard verification and fixes without breaking existing flows
+  - Done when: analytics/data consistency, ticket chat reliability, support messaging creation flow, and support/admin conversation visibility are all validated
+  - Notes: Implemented backend/frontend hardening: support analytics snake_case/camelCase handling, category filter end-to-end (`/support/tickets`), automatic ticket conversation create/repair, `GET /api/support/contacts`, support `New Conversation` composer with role filters, support/admin global conversations list in `conversations.py`. Validation passed: `python -m py_compile` (support + conversations routes) and `npm run build`.
+
+- [x] (2026-02-18) **Support Dashboard Live Verification**
+  - Scope: Validate support dashboard endpoints and permissions with live API (support/admin/user role behavior)
+  - Done when: Read flows + ticket CRUD/status/assign flows are verified and failures (if any) are documented
+  - Notes: Live smoke test passed **19/19** checks using `test.support`, `test.admin`, and `test.passenger`. Verified support reads (tickets/analytics/team/messages/notifications), passenger restrictions (403 on team/analytics/status/assign/other-ticket), and full support handling flow (assign + status updates).
+
+- [x] (2026-02-18) **Admin Dashboard Live Verification + Promotions CRUD Fix**
+  - Scope: Run live API smoke test for admin dashboard endpoints and fix failing admin CRUD operation (`POST /api/promotions` 500)
+  - Done when: Smoke report is complete and promotions create/update/delete path is fixed in backend code
+  - Notes: Live smoke on `v4-full` passed 25/28 checks. Failures: promotions create (500 on live), DB Explorer CRUD via promotions blocked by same issue, invoice generate missing new invoice fields (live not yet updated). Patched `backend/app/routes/promotions.py` to normalize timezone-aware datetimes before Mongo insert/update.
+
+- [x] (2026-02-18) **Admin Invoices Repair**
+  - Scope: Fix invoices date mapping, pagination contract mismatch, and non-functional invoice actions in admin UI
+  - Done when: Admin Invoices shows dates correctly, backend supports page-based pagination, and View/Download/Create actions are functional
+  - Notes: Updated `backend/app/routes/invoices.py` (`page` + pagination + normalized invoice fields) and `src/pages/admin/Invoices.tsx` (normalized rendering + working Generate/View/Download actions). Validation passed: `python -m py_compile backend/app/routes/invoices.py` and `npm run build`.
+
+- [x] (2026-02-18) **Admin Dashboard Safety Fixes**
+  - Scope: Fix missing admin sidebar entries + enforce real auth/role check for trip financials endpoints
+  - Done when: All admin routes reachable from sidebar (except `/admin` redirect) and trip financials requires authenticated admin/support
+  - Notes: Updated `AdminLayout` navigation; replaced hardcoded admin in `trip_financials.py` with real `get_current_user` role guard. Validation passed: `python -m py_compile backend/app/routes/trip_financials.py` and `npm run build`.
+
+- [x] (2026-02-15) **Premium/Private Driver Complete Implementation**
+  - Scope: Fix ALL premium driver bugs + create admin approval backend + real ride request API + bulk sync
+  - Done when: Full flow works: driver applies → admin approves → passenger browses → requests ride → driver responds
+  - Notes: 7 files changed. premium.py REWRITTEN (listing from driver_premium.status, 5 new ride endpoints). NEW admin_premium.py (GET applications + PUT review). PremiumRideRequest.tsx Math.random → real API polling. Bulk sync supabase→mongo added. All deployed and healthy.
+
+- [x] (2026-02-14) **Backend TODOs + Legacy Cleanup**
+  - Scope: Fix invoices.py async, financial_exports.py auth, sync.py DELETE, notifications.py FCM, WaitingForPassenger hardcoded, remove legacy files
+  - Done when: All backend TODOs resolved, legacy files removed
+  - Notes: 6 fixes. invoices.py rewritten sync→async Motor. financial_exports.py real auth + export_history. sync.py soft-delete. notifications.py DB save + FCM stub. Removed SplashScreen.tsx + Index.tsx.
+
+- [x] (2026-02-14) **Passenger Dashboard Fixes**
+  - Scope: Verify all passenger settings, fix broken ones
+  - Done when: All settings working end-to-end
+  - Notes: 8/11 already working. Fixed: language persistence, notifications clear-all, privacy buttons, ReportIssue redirect.
+
+- [x] (2026-02-14) **Complete Bug Fix + Mock Removal (ALL 8 bugs + ALL 10 mock pages)**
+  - Scope: Fix ALL backend bugs from brainmap + convert ALL mock pages to real API
+  - Done when: 0 bugs, 0 mock pages remaining
+  - Notes: 2 sessions. 8 bugs fixed (driver home dead code, premium status async, duplicate rating, hardcoded analytics, uploads auth, legal_entities fake JWT, 2 non-issues). 10 mock pages converted (EditProfile x2, Analytics, FinancialManagement, RequestPayout, PremiumDashboard, Help, Onboarding, WaitingForPassenger + TripInProgress/TripCompleted identified as LEGACY). 8 new backend endpoints created.
+
+- [x] (2026-02-12) **Role-Specific Auth Pages**
+  - Scope: Login/register tabs for passenger and driver from AppSelector
+  - Notes: RoleAuthPage component, Google sign-in placeholder, backend phone optional.
+
+- [x] (2026-02-11) **Support Dashboard + Theme + Upload + Premium Listing**
+  - Scope: Complete support dashboard, dark/light mode, image upload, premium drivers API, icons, scripts
+  - Notes: SupportLayout (5 pages), ThemeContext, local Pillow storage, premium.py listing, 8 platform scripts.
+
+- [x] (2026-02-07) **Messaging System + Endpoint Fixes**
+  - Scope: Conversations API, messaging window, WebSocket events, 404 fixes, accessibility
+  - Notes: conversations.py, admin settings, rider/rides, rides/categories, payments/methods, auth/devices.
+
+- [x] (2026-02-05) **Driver Pages Backend**
+  - Scope: All driver backend endpoints + frontend connected
+  - Notes: profile, home, earnings, history, settings, premium, vehicle requirements, help/faq.
+
+- [x] (2026-02-04) **Admin/Fleet Mock Data Removal**
+  - Scope: Remove mockAdminData.ts + mockFleetData.ts, convert 13+ pages
+  - Notes: Zero mock data in admin/fleet panels.
+
+- [x] (2026-02-03) **Project Initialization**
+  - Scope: AI memory system, deployment, notifications
+  - Notes: /ai folder, Docker containers, SSE notifications.
+
+## Backlog (Priority Order)
+
+### HIGH PRIORITY
+- [x] **Nominatim Address Autocomplete** — ✅ Implemented via `/api/places/autocomplete` and used in `DestinationSearch`
+- [ ] **Stripe Production Hardening** — finalize live/test keys + webhook secret + full premium E2E (`intent -> confirm -> refund`)
+- [x] **Google OAuth** — ✅ Implemented end-to-end (`/api/auth/google/url`, `/api/auth/google/callback`, frontend RoleAuth flow)
+
+### MEDIUM PRIORITY
+- [x] **E2E Testing** — ✅ 97/97 PASS (2026-02-24) — `npm run e2e` to run full suite
+- [x] **FCM Push Readiness (Backend)** — health/self-test endpoints + timeout/token validation (`/api/notifications/push/health`, `/api/notifications/push/test-self`)
+- [x] **Canned Responses** — CRUD + role scopes (`global/support/admin/fleet_manager`) + chat picker integration
+- [x] **Message Search** — server-side full-text endpoint (`/api/conversations/search/messages`) + UI integration all messaging pages
+- [x] **Premium Driver WebSocket** — `PremiumRideRequest` moved from polling to `executive_booking_status` realtime flow
+- [x] **Legacy Pages Cleanup** — orphan instant-flow page files removed from `src/pages`
+- [ ] **FCM Mobile Delivery Validation (Ops)** — final real-device token delivery validation in premium runtime
+  - Status (2026-02-28): endpoint-level validation PASS, blocked operational by missing `FCM_SERVER_KEY` and missing `fcmToken` on users.
+  - Status (2026-03-01): backend upgraded to FCM v1 (`FCM_MODE=v1` support + google-auth), pending server secret file provisioning + key rotation + real device token.
+  - Status (2026-03-01, later): server secret file provisioned at `/var/www/premium/backend/secrets/firebase-service-account.json`; live health now reports `activeChannel=v1`, `v1Configured=true`, `v1Error=null`. Remaining blocker is still zero registered device tokens (`fcmToken` absent on test accounts).
+- [x] **Supabase Premium Bridge Provisioning (Ops)** — finalize new Supabase project schema + webhook for premium runtime
+  - Status (2026-03-01): new credentials wired in local + premium backend env (`SUPABASE_URL/ANON/SERVICE_KEY`) and service restart done.
+  - Status (2026-03-01): schema audit shows only financial tables exist (`legal_entities`, `trip_financials`, `invoices`); core bridge tables are missing (`users`, `rides`, `drivers`, `vehicle_documents`, `audit_logs`, `conversations`, `messages`, `support_tickets`, `location_history`).
+  - Prepared migration: `supabase/migrations/20260301_create_bridge_core_tables.sql` (tables + indexes + RLS baseline).
+  - Status (2026-03-01, after migration): core bridge tables exist and `/api/sync/full` writes non-zero data to Supabase.
+  - Status (2026-03-01, compatibility hotfix): `supabase_bridge.py` patched to sync premium `drivers` + `compliance_documents` correctly; deploy + retest PASS (`drivers=5`, `vehicle_documents=5` in Supabase).
+  - Status (2026-03-01, webhook auth patch): `/api/sync/webhook/supabase` now accepts static header `X-Sync-Token=<SYNC_WEBHOOK_SECRET>` (HMAC headers still supported).
+  - Status (2026-03-01, webhook reliability patch): `sync.py` now accepts `record/old_record = null` payload variants and no longer crashes on DELETE DB truthiness check; live tests on `https://premium.private-driver.ro/api/sync/webhook/supabase` returned `200` for INSERT and DELETE payload forms.
+  - Operational follow-up: monitor webhook error logs for 24h while real traffic flows.
+- [x] **Premium DB Role Communication Audit (Mongo/API)** — validate DB-backed role access and messaging constraints end-to-end
+  - Completed (2026-03-01):
+    - login + endpoint matrix PASS for all 5 roles (`admin/support/driver/user/fleet_manager`)
+    - RBAC deny checks PASS (`/api/admin/dashboard` denied for non-admin)
+    - messaging matrix PASS (`user->support`, `driver->fleet`, support reply, unrelated peer blocked 403)
+    - support ticket write/read/status-update flow PASS (created by user/driver/fleet, closed by support)
+- [x] **Premium Launch Hotfix (Admin Dashboard Datetime Serialization)** — remove `500` on `/api/admin/dashboard` caused by mixed date types
+  - Completed (2026-03-01):
+    - patched `backend/app/routes/admin.py` to serialize `datetime|string` safely (`_to_iso_or_str`)
+    - deployed to premium service and restarted runtime
+    - post-fix role smoke on valid endpoints: 5/5 PASS
+      (`admin/dashboard`, `support/tickets`, `driver/home`, `rider/rides`, `fleet/stats`)
+- [x] **Legal Runtime Enforcement (Fleet-only Driver Onboarding)** — align backend/frontend with client↔operator legal model
+  - Completed (2026-03-01):
+    - driver register requires invitation token (`driver_invitations`) and active fleet legal entity
+    - fleet endpoint `/api/fleet/drivers` switched to invitation issuance (no direct promotion)
+    - new fleet legal linking endpoints (`GET/PUT /api/fleet/legal-entity`) + invite management endpoints
+    - executive booking now enforces operator context + stores `operatorSnapshot`
+    - contract generator updated to show legal operator as contractual party
+    - role auth UI updated with invite token flow for driver registration
+  - Validation:
+    - no-invite driver registration blocked (`400`)
+    - invite -> register driver PASS
+    - executive booking PASS with contract generated under operator-bound model
+
+### LOW PRIORITY
+- [ ] **Bulk Operations** — Batch ticket actions, mass notifications
+- [ ] **Performance Optimization** — Code splitting, lazy loading
+- [ ] **Scheduled Messages** — Automated responses and escalation workflows
+- [ ] **Advanced Analytics** — More detailed admin metrics
+
+## Key Endpoints Status
+
+### ✅ ALL CONNECTED (Frontend → Backend)
+- Auth: login, logout, refresh, register, devices
+- Admin: dashboard, trips, users, drivers, fleets, vehicles, payments, pricing, settings, analytics, financials, premium applications
+- Fleet: stats, drivers, vehicles, analytics, reports, earnings, settings, trips
+- Driver: profile, home, status, earnings, history, ride-requests, settings, premium (apply/status/rates/dashboard), payouts, onboarding, vehicle/requirements, help
+- Passenger: rider/rides, rides/categories, payments/methods, saved-places, premium drivers (list/detail/request/status)
+- Messaging: conversations (list, create, detail, messages, send, read, edit, delete)
+- Support: tickets (CRUD + status + assign), team, analytics
+- Notifications: list, mark-all-read, clear-all, SSE, register/unregister, preferences
+- Financial: trip-financials, legal-entities, invoices, financial-exports
+- Other: audit/logs, documents, gdpr, promotions, referrals, uploads, sync (full + bulk + webhook)
+
+### ⏳ NOT YET IMPLEMENTED
+- Stripe payment processing endpoints (deferred)
+- Real-device FCM delivery validation on production mobile tokens
+

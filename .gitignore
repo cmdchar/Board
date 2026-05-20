@@ -1,0 +1,49 @@
+# Secrets & environment
+.env
+*.dpapi.json
+*.pem
+*secret*
+*credential*
+!credential-management.js
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+dist/
+build/
+frontend/dist/
+.vite/
+
+# Runtime data
+backend/data/*.json
+backend/data/*.sqlite
+backend/data/*.db
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Claude/OpenClaw local
+.claude/
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*_backup_*
+*.bak

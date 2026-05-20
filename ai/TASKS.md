@@ -1,0 +1,926 @@
+# AI TASK TRACKER - BoardAI
+
+## Active Task (NOW)
+- [ ] Miro++ Track A (Execution wedge): transforma board-ul in execution workspace (nu doar ideation).
+- [ ] Execution wedge v1: ingest PRD + repo/issues -> plan executabil (milestones/dependencies/owners) + sync bidirectional (strict contract + deterministic mapping livrate; ramane sync extern).
+- [ ] AI differentiator v2: sync bidirectional plan <-> issues/tickets (GitHub MVP + hardening + OAuth/token vault + sync depth livrate; Jira import MVP livrat; ramane Jira push + Azure).
+- [ ] Integrari critice v1: Jira/Azure DevOps, Confluence/Notion, Slack/Teams (GitHub MVP livrat).
+- [ ] Scale/perf v1: board-uri mari (mii de noduri), virtualizare, conflict resolution robust, offline queue.
+- [ ] Enterprise trust v1: SSO/SCIM + guardrails sharing/compliance + eDiscovery/classification hooks.
+- [ ] Platform extensibila: SDK/REST app surface + marketplace-ready app model.
+- [ ] GTM product surface: template library verticalizata + onboarding <60s (pricing simplu separat, business task).
+
+## Roadmap (Segment Win vs Miro)
+- [ ] Phase 1 (in progress): Multi-tracker execution sync (Jira + Azure) pe schema unica `execution*`.
+  - [x] Jira import MVP (`POST /api/boards/:id/integrations/jira/import` + UI in `EXECUTION PLAN`)
+  - [ ] Jira push MVP (`board -> Jira issues`)
+  - [ ] Azure DevOps import MVP
+  - [ ] Azure DevOps push MVP
+- [ ] Phase 2: Integrari de context pentru execution teams.
+  - [ ] Slack/Teams notifications + commands
+  - [ ] Confluence/Notion import context + deep links
+  - [ ] Deep links cross-tool (GitHub/Jira/Azure -> board nodes)
+- [ ] Phase 3: Execution UX moat.
+  - [ ] Inline editing owner/status/priority/due direct pe execution cards
+  - [ ] Bulk operations + lane transitions + dependency quick-actions
+  - [ ] Auto-sync scheduler + conflict inbox
+- [ ] Phase 4: Enterprise close.
+  - [ ] SSO SAML + SCIM provisioning
+  - [ ] Audit export/API + SIEM hooks + compliance guardrails
+- [ ] Phase 5: Scale/mobile production.
+  - [ ] Board virtualization pentru mii de noduri
+  - [ ] Offline queue + conflict recovery
+  - [ ] Mobile execution interactions (card edit/sync flows)
+- [ ] Phase 6: GTM surface.
+  - [x] Template Marketplace v1 / template library (browse/search/filter/publish/version/use + AI generation)
+  - [ ] Onboarding flow <60s pe use-case-uri cheie
+
+## Completed Tasks (Recent)
+- [x] (2026-03-11) Platform core stack deployed on `vm-web`.
+  - stack:
+    - PostgreSQL 16 (`:5433`)
+    - Redis 7 (`:6379`)
+    - MinIO (`:9000` API, `:9001` console)
+  - files:
+    - `infra/platform-core-stack/compose.yaml`
+    - `infra/platform-core-stack/.env.example`
+    - `infra/platform-core-stack/scripts/generate-secrets.sh`
+    - `infra/platform-core-stack/README.md`
+  - runtime:
+    - deployed at `/opt/private-driver/platform-core-stack`
+    - health checks passed (`MinIO live=200`)
+
+- [x] (2026-03-11) Automated server inventory sync enabled (every 15 min).
+  - new automation package:
+    - `infra/board-sync/server_inventory_sync.py`
+    - `infra/board-sync/server-inventory-sync.service`
+    - `infra/board-sync/server-inventory-sync.timer`
+    - `infra/board-sync/.env.example`
+    - `infra/board-sync/README.md`
+  - token helper:
+    - `infra/tools/create-board-api-token.mjs`
+  - deployed on Proxmox host:
+    - `/opt/private-driver/board-sync`
+    - timer active: `server-inventory-sync.timer`
+    - service first run: SUCCESS (board updated).
+
+- [x] (2026-03-11) Full server inventory board generated on `board.private-driver.ro`.
+  - live board:
+    - `Server Ops - Private Driver`
+    - `https://board.private-driver.ro/?board=10a63a51-f0a6-4f33-a149-258c20431236`
+  - content upgraded with visual sections:
+    - topology map (host + VM split + disk layout)
+    - host runtime/hardware summary
+    - VM cards + running container stacks
+    - storage/backup policy + retention
+    - health endpoints + operations runbook
+    - post-fiber roadmap tasks
+  - source updater:
+    - `infra/tools/upsert-server-ops-board.mjs`
+
+- [x] (2026-03-10) Project Vault v1 integrated (backend + editor panel).
+  - backend:
+    - modul nou `backend/server/modules/vault/*`
+    - SQLite `vault.sqlite` cu tabele:
+      - `vault_projects`
+      - `vault_records`
+      - `vault_record_versions`
+      - `vault_activity`
+    - rute noi `/api/vault/*` + summary in `/api/health`
+    - ingest endpoint `POST /api/vault/ingest` (parse text + auto project resolve/create + upsert)
+  - frontend:
+    - `PROJECT VAULT` section in `RightPanel`
+    - component nou `VaultPanel` (create project/record, filters, reveal, due subscriptions)
+    - API client methods noi in `frontend/src/App.jsx`
+  - tooling:
+    - `tools/vault-capture.js` pentru ingest din terminal (orice IDE)
+    - `tools/install-vault-capture.ps1` pentru command global `vault-capture`
+  - tests:
+    - `backend/tests/vault.service.test.js`
+    - `backend/tests/vault.ingest.test.js`
+  - docs:
+    - `ai/database.md`, `ai/BRAIN.md`, `ai/BRAINMAP.md`, `ai/DECISIONS.md`, `ai/CHANGELOG_AI.md`
+
+- [x] (2026-03-05) Premium UX polish v2 (Apple-like motion/depth + tactile feedback + encoding-safe UI labels).
+  - motion system:
+    - `frontend/src/styles/tokens.js`
+    - timings: `120ms/180ms/260ms`
+    - easing: `easeOut` + `easeSpring`
+  - interaction polish in editor:
+    - `frontend/src/App.jsx`
+    - drag tactile scale on selected nodes while grabbed
+    - alignment guide fade animation
+    - success moments:
+      - task completion check pulse
+      - AI generation sparkle badge
+    - mouse move scheduling via `requestAnimationFrame`
+  - glass depth surfaces:
+    - `frontend/src/components/RightPanel.jsx`
+    - `frontend/src/components/RightToolPanel.jsx`
+    - `frontend/src/components/MobileBottomSheet.jsx`
+    - `frontend/src/components/context-menu/ContextMenu.jsx`
+  - mojibake cleanup:
+    - `frontend/src/App.jsx`
+    - `frontend/src/components/RightPanel.jsx`
+    - replaced corrupted glyphs/icons with stable ASCII labels
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:dataflow` PASS
+    - `npm.cmd run test:spreadsheet` PASS
+    - `npm.cmd run test:connectors` PASS
+
+- [x] (2026-03-05) Premium UX polish v1 in frontend editor/dashboard.
+  - design system/tokens:
+    - `frontend/src/styles/tokens.js`
+    - semantic color tokens + spacing/radius/motion scales
+  - editor UX:
+    - onboarding overlay + quick start presets
+    - empty board actionable state (`Generate with AI`, `Add template`, `Start brainstorming`)
+    - connector snap pulse animation
+    - improved node selection clarity via `data-selected`
+  - panel/mobile:
+    - `RightPanel` spacing hierarchy pass
+    - `MobileBottomSheet` larger touch targets/handle polish
+  - dashboard perceived performance:
+    - board-list skeleton loading
+    - actionable no-board state
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:dataflow` PASS
+    - `npm.cmd run test:spreadsheet` PASS
+    - `npm.cmd run test:connectors` PASS
+    - deploy `ops\\deploy_now.ps1 -SkipBuild` PASS
+
+- [x] (2026-03-05) Data Flow Engine v1 integrated (node pipelines + dependency graph + transform/chart/kpi live recompute).
+  - frontend runtime nou:
+    - `frontend/src/lib/dataflow/engine.js`
+    - `frontend/src/hooks/useDataFlowEngine.js`
+  - capabilitati:
+    - pipeline-uri de date pe conectori (`flowType:"data"`)
+    - dependency graph + topological recompute + cycle prevention
+    - transform nodes (`sum/average/filter/group`)
+    - live updates downstream (`sheet -> transform -> chart/kpi`)
+    - data preview + error states pe connector
+  - UI/tooling:
+    - `transform` tool nou (shortcut `2`) in tools panel + context menu
+    - conectori de date randati distinct (badge + color/error)
+  - alignment Spreadsheet AI:
+    - chart/kpi generation pe noduri first-class + data connectors
+  - validation:
+    - `npm.cmd run test:dataflow` PASS
+    - `npm.cmd run test:spreadsheet` PASS
+    - `npm.cmd run test:connectors` PASS
+    - `npm.cmd run build` PASS
+    - deploy `ops\\deploy_now.ps1` PASS
+
+- [x] (2026-03-05) AI Spreadsheet Analysis v1 integrated in editor.
+  - frontend analysis layer:
+    - `frontend/src/hooks/useSpreadsheetAi.js`
+    - `frontend/src/components/SpreadsheetAiPanel.jsx`
+    - `frontend/src/lib/spreadsheet/analysis.js` extended
+  - capabilities:
+    - analyze data / summarize trends / detect anomalies / generate insights
+    - natural language query over spreadsheet context
+    - anomaly visual highlight in `SpreadsheetNode`
+    - chart node generation (bar/line/pie)
+    - KPI node generation + KPI auto-refresh on sheet updates
+    - relationship discovery + click-to-create formula suggestions
+  - validation:
+    - `npm.cmd run test:spreadsheet` PASS
+    - `npm.cmd run test:connectors` PASS
+    - `npm.cmd run build` PASS
+    - deploy `ops\\deploy_now.ps1` PASS
+
+- [x] (2026-03-05) Cross-Spreadsheet formulas + data flow shipped in frontend spreadsheet engine.
+  - new engine:
+    - `frontend/src/lib/spreadsheet/engine.js`
+    - cross-sheet refs (`Sheet!B2`, `sheet(\"...\").B2`, `Sheet!Price[A]`)
+    - dependency graph + cycle/ref error handling
+    - sheet-level data flow edges
+  - editor integration:
+    - `SpreadsheetNode` uses global engine
+    - formula pick from other sheets (click-to-insert reference)
+    - referenced sheet highlight + flow stats
+    - connector visual hint for `data flow`
+  - tests:
+    - `frontend/scripts/test-spreadsheet-engine.mjs`
+    - `npm.cmd run test:spreadsheet` PASS
+    - `npm.cmd run test:connectors` PASS
+    - `npm.cmd run build` PASS
+
+- [x] (2026-03-05) AI endpoint fallback hardening for production (`/api/ai/complete`).
+  - backend:
+    - `backend/server.js`:
+      - added deterministic fallback payload generator for AI outages.
+      - new env gate `AI_ALLOW_FALLBACK` (default enabled).
+      - `/api/ai/complete` now returns `200` with fallback JSON when provider fails (`timeout`, invalid JSON, missing key).
+      - `/api/health` includes fallback observability fields:
+        - `ai.fallback_enabled`
+        - `ai.fallback`
+        - `ai.last_fallback_reason`
+  - validation:
+    - `node --check backend/server.js` PASS
+    - `npm.cmd run build` PASS
+    - deploy PASS (`ops/deploy_now.ps1`, public health ok)
+
+- [x] (2026-03-05) Template Marketplace v1 integrated (backend + editor UI).
+  - backend:
+    - `backend/server.js`:
+      - storage `templates.json` + helpers normalize/preview/rating/bookmarks.
+      - REST:
+        - `GET /api/templates/categories`
+        - `GET /api/templates`
+        - `GET /api/templates/:id`
+        - `GET /api/templates/:id/preview`
+        - `POST /api/templates`
+        - `PUT /api/templates/:id/publish`
+        - `POST /api/templates/:id/version`
+        - `POST /api/templates/:id/bookmark`
+        - `POST /api/templates/:id/rate`
+        - `POST /api/templates/:id/use`
+  - frontend:
+    - fișier nou:
+      - `frontend/src/components/TemplateMarketplacePanel.jsx`
+    - `frontend/src/App.jsx`:
+      - API client `template*` methods.
+      - `TplPanel` folosește noul marketplace panel (înlocuit static TPLS panel).
+      - create board din template + insert AI/template data pe board (ID remap + focus tidy).
+  - validation:
+    - `npm.cmd run build` PASS
+    - `node --check backend/server.js` PASS
+
+- [x] (2026-03-05) Collaboration Engine v1 + AI Agents wiring completion.
+  - backend:
+    - `backend/server.js`:
+      - `board:activity` broadcast full-room (`io.to(boardId)`).
+      - `user:joined` include `state` + `lastActiveAt`.
+  - frontend:
+    - `frontend/src/App.jsx`:
+      - collaboration state in `InnerApp` (`users/presence/activity/meeting assistant`).
+      - socket listeners for `users:init`, `user:joined`, `user:left`, `cursor:update`, `cursor:leave`, `user:presence`, `board:activity`.
+      - meeting assistant flow: notes -> AI suggestions -> apply on board.
+      - `Canvas` now receives remote `collabUsers` for live cursors.
+      - `RightPanel` receives `collab` + `onEmitActivity` for `COLLABORATION` and `AI AGENTS`.
+      - fixed potential runtime crash by moving `setMobileMode`/`exitMobileMode` before `popstate` effect.
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:connectors` PASS
+    - `node --check backend/server.js` PASS
+
+- [x] (2026-03-05) Execution Intelligence v1 in editor (task/milestone/decision + health + timeline + meeting autopilot).
+  - frontend:
+    - fisiere noi:
+      - `frontend/src/hooks/useExecutionIntelligence.js`
+      - `frontend/src/components/ExecutionPanel.jsx`
+      - `frontend/src/components/ExecutionTimelineOverlay.jsx`
+    - `frontend/src/components/RightPanel.jsx`:
+      - sectiune noua `EXECUTION` integrata in panel.
+    - `frontend/src/App.jsx`:
+      - node types: `task`, `milestone`, `decision`.
+      - timeline overlay toggle + due date update flow.
+      - execution snapshot wiring + focus from warnings.
+      - dependency connector logic fix (nu mai forteaza `depends_on` pe conectori fara depType).
+      - inspector/context connector: `None/Depends/Blocks/Related`.
+    - `frontend/src/components/RightToolPanel.jsx`:
+      - tool-uri noi pentru execution nodes.
+    - `frontend/src/state/boardState.js` + `frontend/src/lib/input/modeController.js`:
+      - add tools extinse cu `task/milestone/decision`.
+    - `frontend/src/components/context-menu/actions/canvas.js`:
+      - insert grouped actions pentru execution nodes.
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:connectors` PASS
+
+- [x] (2026-03-05) Mobile editor shell + touch interaction hardening (v1).
+  - frontend:
+    - fisiere noi:
+      - `frontend/src/components/MobileBottomSheet.jsx`
+      - `frontend/src/lib/input/inputController.js`
+    - `frontend/src/App.jsx`:
+      - shell mobil unificat (`mobileSheet`: insert/panel/more)
+      - `MobileBottomBar` actiuni primare
+      - `Canvas` touch hardening:
+        - long-press contextual actions sheet
+        - node touch routing (`onTouchSel`) pentru pan/select diferentiat
+      - `Toolbar` legacy desktop-only
+      - default mobile mode: `pan`
+    - `frontend/src/components/RightToolPanel.jsx`:
+      - prop nou `embedded` pentru render in sheet
+    - UI consistency:
+      - `SpreadsheetNode`/`DeckNode` migrate pe token-uri `T`
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:connectors` PASS
+    - deploy PASS
+
+- [x] (2026-03-05) Right panel UX aligned with left panel model + desktop hide/unhide.
+  - `frontend/src/App.jsx`:
+    - `rightPanelOpen` state
+    - `Hide Panel / Show Panel` button on desktop
+    - minimap `rightInset` dynamic by panel visibility
+    - desktop render for `RightPanel` now conditional
+  - `frontend/src/components/RightPanel.jsx`:
+    - floating desktop visual style (rounded + shadow + border)
+    - panel header + `Hide` action
+    - `SPIDER WEB - FILE` collapsible section
+  - validation:
+    - `npm.cmd run build` PASS
+    - `npm.cmd run test:connectors` PASS
+    - deploy PASS
+
+- [x] (2026-03-05) Advanced Connectors v1.5: line jumps + default connector style persistence.
+  - frontend:
+    - `frontend/src/lib/geometry/connectors/model.js`:
+      - normalizare pentru `jumpStyle`
+      - normalizare preset default connector style
+    - `frontend/src/lib/geometry/connectors/routing.js`:
+      - segment spatial index + intersection engine pentru crossings
+      - jump path builder (`applyJumpsToPath`)
+    - `frontend/src/App.jsx`:
+      - flow-uri de create connector folosesc default preset curent
+      - remember last style (`pd.board.connector.rememberLast.v1`)
+      - set/reset default (`pd.board.connector.defaultStyle.v1`)
+      - jump style controls in inspector/context menu (`auto/on/off`)
+      - line jumps rendering cu debounce + idle compute
+  - tests:
+    - `frontend/scripts/test-connectors.mjs` extins pentru spatial index + intersections + jumps + default style normalization
+  - validation:
+    - `npm.cmd run test:connectors` PASS
+    - `npm.cmd run build` PASS
+
+- [x] (2026-03-04) Advanced Connectors v1 pe canvas (ports + anchor model + routing + style inspector).
+  - frontend:
+    - module noi:
+      - `frontend/src/lib/geometry/connectors/routing.js`
+      - `frontend/src/lib/geometry/connectors/model.js`
+    - `App.jsx`:
+      - ports overlay (top/right/bottom/left) pe hover/selection
+      - drag-to-connect cu snap pe porturi + preview path
+      - render conectori pe ancore (`from/to`) cu fallback legacy (`fromId/toId`)
+      - routing: `straight`, `ortho` (A* obstacle avoidance), `curved`, `wavy`
+      - inspector extins pentru style/caps/routing + sliders pentru ortho/wavy
+      - context menu pe connector (routing/style/reverse/delete)
+    - `boardState.js`:
+      - compat helperi pentru connector endpoints + paste/delete/dependency update
+  - tests:
+    - `frontend/scripts/test-connectors.mjs`
+    - script nou `npm run test:connectors`
+  - validation:
+    - `npm run test:connectors` PASS
+    - `npm run build` PASS
+
+- [x] (2026-03-04) Semantic deploy compatibility + deploy script hardening.
+  - backend:
+    - semantic DB driver schimbat pe `better-sqlite3` pentru compatibilitate Node 20 productie
+  - ops:
+    - `ops/deploy_board.ps1` urca si `backend/server/` (module runtime), nu doar `server.js`
+  - deploy:
+    - live deploy PASS cu `LOCAL_HEALTH` + `PUBLIC_HEALTH` ok
+
+- [x] (2026-03-04) Semantic Board Graph + Execution Health v1 (incremental).
+  - backend:
+    - semantic layer nou (SQLite) cu migrations:
+      - `semantic_entities`
+      - `semantic_relations`
+      - `board_health_snapshot`
+    - module nou:
+      - `extractSemantic(...)`
+      - `computeHealth(...)`
+      - service + queue (rebuild debounced pe save/create/restore)
+    - endpoint-uri noi:
+      - `GET /api/boards/:id/semantic`
+      - `POST /api/boards/:id/semantic/rebuild`
+    - observability:
+      - metrics semantic in `/api/health`
+  - frontend:
+    - Dashboard card `Execution Health` (score + top 3 issues)
+    - drawer `Execution Health Details` (issues grupate)
+    - click issue -> open board + focus node (`focus` query param + pan/select)
+  - tests:
+    - unit: extractor + health engine
+    - integration: GET semantic endpoint
+  - validation:
+    - backend check PASS
+    - backend tests PASS
+    - frontend build PASS
+
+- [x] (2026-03-04) Deck typing target toggle (`Title` / `Body`) + keyboard alignment.
+  - frontend:
+    - `DeckNode` are control vizual pentru target-ul tastaturii (`Title`/`Body`)
+    - click pe zona de titlu/body seteaza target-ul activ (`deckInputTarget`)
+    - keyboard pe `deck` scrie acum in campul selectat, nu doar in body
+  - state:
+    - `makeDeckNode(...)` initializeaza `deckInputTarget` implicit pe `body`
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Fixes: mobile panel scroll + contextual keyboard behavior in `sheet` / `deck`.
+  - frontend:
+    - `RightPanel` suport `fill` pentru drawer mobil (scroll complet)
+    - `RightToolPanel` hardening pentru touch/scroll (stopPropagation + touch scrolling)
+    - `Toolbar` keyboard engine:
+      - `sheet`: arrow/tab/enter navigare celule + typing editare celula activa
+      - `deck`: arrow left/right slide nav + typing editare body slide
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Mobile complete pass for tools/panels.
+  - frontend:
+    - TopBar mobil include acum `Tools` + `Panel` toggles separate
+    - `mobileToolsOpen` flow nou cu overlay pentru `RightToolPanel`
+    - toggles exclusive: deschiderea unui drawer il inchide pe celalalt
+    - `Escape` inchide ambele drawer-e mobile
+    - toolbar mobil ascuns cand un drawer este deschis
+    - safe-area iOS pentru toolbar (`env(safe-area-inset-bottom)`)
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) UX update: tools panel moved to left + hide/unhide control.
+  - frontend:
+    - `RightToolPanel` suporta pozitionare `side="left"` + `leftInset`
+    - `InnerApp` are state `toolsPanelOpen` + buton `Hide Tools / Show Tools`
+    - panelul nou este conditionat pe desktop; mobilul ramane pe fluxul existent
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Desktop tools redesign: right-side categorized tool panel + mobile fallback preserved.
+  - frontend:
+    - component nou:
+      - `frontend/src/components/RightToolPanel.jsx`
+    - integrare in `frontend/src/App.jsx`:
+      - desktop:
+        - `RightToolPanel` activ in editor
+        - `Toolbar` legacy montat `hidden` pentru shortcut-uri existente
+      - mobile:
+        - toolbar-ul existent ramane activ
+    - UX:
+      - categorii colapsabile + labels + tooltips + quick actions (`undo/redo/snap/dep`)
+      - search intern pentru tool-uri
+  - cleanup:
+    - glyph-uri corupte in `DeckNode` inlocuite cu `<` / `>`
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Spreadsheet + Slides containers functionale in canvas (Excel/PPT-like nodes).
+  - state domain (`frontend/src/state/boardState.js`):
+    - factory nou `makeSheetNode(...)` (sheet cu `sheetRows/sheetCols/sheetCells`)
+    - factory nou `makeDeckNode(...)` (deck cu `deckSlides/deckIndex`)
+    - template `table` mutat pe node `sheet`
+    - template-uri noi `spreadsheet` + `slides`
+    - copy/duplica deep clone pentru structurile interne (`sheetCells`, `deckSlides`)
+  - frontend (`frontend/src/App.jsx`):
+    - component nou `SpreadsheetNode`:
+      - grid editabil real
+      - formula bar
+      - suport formule cu referinte/range/functii (`SUM/AVG/MIN/MAX/COUNT`)
+      - detectie ciclu (`#CYCLE!`) si error handling (`#ERR`)
+    - component nou `DeckNode`:
+      - navigare slide-uri
+      - add/delete slide
+      - editare titlu/body per slide
+    - insert tools:
+      - `table` insereaza acum `sheet`
+      - tool-uri noi: `sheet (N)` si `deck (O)`
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Jira import MVP (roadmap phase 1) - started implementation.
+  - backend:
+    - endpoint nou:
+      - `POST /api/boards/:id/integrations/jira/import`
+    - auth suport:
+      - request `jiraEmail + jiraToken` (body/header)
+      - fallback env (`JIRA_EMAIL`, `JIRA_TOKEN`)
+    - mapping Jira -> execution plan:
+      - issues -> `tasks` (`summary`, `assignee`, `priority`, `status`, `duedate`)
+      - `fixVersions` -> `milestones`
+      - issue links -> `dependsOn`
+    - sync state nou:
+      - `board.integrations.jira[site::project]`
+    - audit event nou:
+      - `board.jira.import`
+  - frontend:
+    - `EXECUTION PLAN` section noua `JIRA IMPORT (MVP)`:
+      - inputs: site, project key, email, token, state
+      - action: `Import Jira -> Board`
+    - wiring API nou:
+      - `api.jiraImport(...)`
+      - `jiraApi.import(...)`
+  - config:
+    - `backend/.env.example` extins cu `JIRA_EMAIL`, `JIRA_TOKEN`
+  - validation:
+    - backend check PASS
+    - frontend build PASS
+
+- [x] (2026-03-03) GitHub sync depth finalizat: milestone reconciliation + dependency parsing avansat + retry/backoff + idempotency.
+  - backend:
+    - `githubRequest` extins cu retry/backoff (`408/409/425/429/5xx`) + suport `Retry-After`
+    - idempotency keys active in import/push:
+      - body/header acceptate
+      - replay response cached
+      - guard pentru request concurrent (`pending`)
+      - TTL store per board (`board.integrations.github_idempotency`)
+    - milestone reconciliation pe push:
+      - create/update milestone (`state`, `due_on`) din task cards
+      - stats returnate in response (`desired/matched/created/updated`)
+    - parsing dependinte extins la import:
+      - `issue #123`, `/issues/123`, `depends-on:/blocked-by:/requires:`
+      - regex newline fix pe chunk parser
+  - frontend:
+    - import/push trimit idempotency key (`gh-import:*`, `gh-push:*`)
+    - API trimite si `Idempotency-Key` header
+  - config:
+    - `backend/.env.example` extins cu:
+      - `GITHUB_RETRY_MAX_ATTEMPTS`
+      - `GITHUB_RETRY_BASE_MS`
+      - `GITHUB_IDEMPOTENCY_TTL_SEC`
+  - validation/deploy:
+    - backend check PASS
+    - frontend build PASS
+    - deploy live (`ops/deploy_board.ps1 -SkipBuild`) PASS
+
+- [x] (2026-03-03) GitHub OAuth app flow + token vault + UI fara token manual.
+  - backend:
+    - endpoint-uri OAuth:
+      - `GET /api/integrations/github/oauth/start`
+      - `GET /api/integrations/github/oauth/callback`
+      - `GET /api/integrations/github/oauth/status`
+      - `DELETE /api/integrations/github/oauth/status`
+    - token vault per user in `users.json` (`user.integrations.github`) cu criptare AES-256-GCM
+    - import/push folosesc acum fallback: request/header -> user vault -> `GITHUB_TOKEN` env
+    - `/api/health` include status GitHub OAuth/env fallback
+  - frontend:
+    - eliminat input token din `EXECUTION PLAN`
+    - butoane `Connect GitHub` / `Disconnect` + status auth
+    - popup OAuth + refresh status in `useRightPanelAi`
+  - config:
+    - `backend/.env.example` extins cu variabile OAuth + vault secret + `PUBLIC_BASE_URL`
+  - validation:
+    - `node --check backend/server.js` PASS
+    - `cmd /c npm run build` in `frontend/` PASS
+
+- [x] (2026-03-03) GitHub sync hardening + deploy live.
+  - backend:
+    - import incremental (`incremental`, `since`) + sync state per repo in `board.integrations.github`
+    - push cu conflict strategy:
+      - `skip_remote_newer`
+      - `prefer_board`
+      - `prefer_remote`
+    - conflict detection bazata pe `issue.updated_at` vs metadata task (`issueUpdatedAt/lastSyncedAt`)
+    - fallback create cand issue link-uit lipseste (404)
+    - response extins (`skipped`, `conflicts`, `sync`, `linked.issueUpdatedAt`)
+  - frontend:
+    - controls noi in execution panel:
+      - incremental import toggle
+      - conflict strategy selector
+    - metadata execution extinsa:
+      - `executionIssueUpdatedAt`
+      - `executionLastSyncedAt`
+      - `executionRepo`
+      - `executionTitle`, `executionDescription`
+  - deploy:
+    - `ops/deploy_board.ps1 -SkipBuild` -> PASS
+    - health local/public -> PASS
+    - smoke rute GitHub integration live -> PASS
+
+- [x] (2026-03-03) GitHub bidirectional sync MVP livrat pentru execution board.
+  - backend:
+    - endpoint nou:
+      - `POST /api/boards/:id/integrations/github/import`
+      - `POST /api/boards/:id/integrations/github/push`
+    - mapping issues -> execution plan (`milestones/tasks/risks`) + upsert issues din task cards
+    - audit events:
+      - `board.github.import`
+      - `board.github.push`
+  - frontend:
+    - `RightPanel` (`EXECUTION PLAN`) are acum controls pentru:
+      - repo (`owner/repo`)
+      - token
+      - state (`open/all/closed`)
+      - import/push actions
+    - `useRightPanelAi`:
+      - `runGitHubImport`
+      - `runGitHubPush`
+      - `extractExecutionTasksForSync`
+      - metadata issue pe execution nodes (`executionIssue*`)
+  - validation:
+    - backend check PASS
+    - frontend build PASS
+
+- [x] (2026-03-03) Execution wedge v1 hardening: strict execution contract + deterministic board renderer.
+  - frontend:
+    - `frontend/src/ai/prompts.js`:
+      - `EXEC_SYS` trecut la schema structurata (`objectives/milestones/tasks/risks`)
+      - campuri task obligatorii (`owner/priority/status/dueDate/stage/milestoneId`)
+    - `frontend/src/hooks/useRightPanelAi.js`:
+      - normalizare noua `normalizeExecutionPlan(...)`
+      - randare noua `applyExecutionPlan(...)` cu lanes `NOW/NEXT/LATER`
+      - metadata execution pe noduri pentru pasul de sync ulterior
+      - `runExecutionPlan()` foloseste noul pipeline in loc de `applyParsed(...)`
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Refactor phase 4 finalizat: `PropsPanel` + `FileZone` extrase din `App.jsx`.
+  - fisiere noi:
+    - `frontend/src/components/PropsPanel.jsx`
+    - `frontend/src/components/FileZone.jsx`
+  - `frontend/src/components/RightPanel.jsx`:
+    - importa direct noile componente
+    - primeste configurarea tabelului prin props (`getTableInfo`, `TABLE_*`)
+  - `frontend/src/App.jsx`:
+    - eliminate implementari locale `PropsPanel` / `FileZone`
+    - wiring update pentru `RightPanel` cu dep table config
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Execution wedge v1 - MVP UI livrat (phase 1).
+  - frontend:
+    - prompt nou `EXEC_SYS` in `frontend/src/ai/prompts.js`
+    - `useRightPanelAi` extins cu flow nou `runExecutionPlan`
+    - `RightPanel` section nou `EXECUTION PLAN`:
+      - input pentru context PRD/repo/issues
+      - optiune replace canvas
+      - generare board executabil (milestones/dependencies/owners TBD)
+  - validation:
+    - frontend build PASS
+
+- [x] (2026-03-03) Audit timeline UI implementat in RightPanel.
+  - frontend:
+    - fisier nou `frontend/src/components/AuditTimelinePanel.jsx`
+    - integrare in `frontend/src/components/RightPanel.jsx`
+    - API wiring in `frontend/src/App.jsx`:
+      - `auditList` + `auditApi`
+  - backend:
+    - `GET /api/boards/:id/audit` suporta acum filtre:
+      - `limit`
+      - `action` (single/csv)
+      - `actorId`
+      - `min_ts`
+    - events includ actor enrichment (`actor: { id, name, email, color }` cand user exista)
+  - validation:
+    - frontend build PASS
+    - backend check PASS
+
+- [x] (2026-03-03) AI endpoint hardening: rate limiting + observability.
+  - backend `server.js`:
+    - middleware nou `aiRateLimit` pe `POST /api/ai/complete`
+    - config env nou:
+      - `AI_RATE_WINDOW_SEC`
+      - `AI_RATE_MAX`
+    - metrics runtime noi in `/api/health`:
+      - requests/success/errors/repaired/rate_limited
+      - last_error / last_model / last_usage / last_latency_ms
+  - validation:
+    - backend check PASS
+
+- [x] (2026-03-03) Miro++ baseline completat pentru audit + realtime RBAC + mobile hardening.
+  - backend `server.js`:
+    - audit store nou `backend/data/audit.json`
+    - endpoint nou:
+      - `GET /api/boards/:id/audit`
+    - audit events pentru:
+      - `board.create`, `board.rename`, `board.save`, `board.restore`, `board.delete`
+      - `board.member.add`, `board.member.role`, `board.member.remove`
+    - Socket.IO enforcement:
+      - `board:join` verifica acces read
+      - `board:sync` verifica acces edit
+      - `cursor:move` verifica acces read
+      - erori noi:
+        - `board:join:error`
+        - `board:sync:error`
+  - frontend:
+    - socket auth token trimis explicit la join
+    - handling pentru `board:join:error` / `board:sync:error` cu toast
+    - mobile readiness:
+      - right panel drawer pe mobil
+      - toolbar bottom + scroll pe mobil
+      - touch interactions pe canvas + pinch zoom
+      - responsive pass pe Landing/Auth/Dashboard
+  - validation:
+    - `node --check backend/server.js` PASS
+    - `cmd /c npm run build` in `frontend/` PASS
+
+- [x] (2026-03-03) Workspace RBAC baseline livrat (owner/editor/viewer) + sharing UI.
+  - backend `server.js`:
+    - access guards:
+      - `canReadBoard` / `canEditBoard` / `canManageBoard`
+    - `POST /api/boards` -> `requireAuth`
+    - list/get board returneaza `access_role`
+    - endpoints noi members:
+      - `GET /api/boards/:id/members`
+      - `PUT /api/boards/:id/members` (`email`, `role`)
+      - `DELETE /api/boards/:id/members/:userId`
+  - frontend:
+    - fisier nou `frontend/src/components/BoardAccessPanel.jsx`
+    - integrare in `RightPanel`
+    - wiring API members in `App.jsx`
+  - validation:
+    - backend check PASS
+    - frontend build PASS
+    - smoke RBAC flow PASS
+
+- [x] (2026-03-03) Frontend version history UI finalizat (list + preview + restore confirm UX).
+  - fisier nou: `frontend/src/components/VersionHistoryPanel.jsx`
+  - integrare in `frontend/src/components/RightPanel.jsx`
+  - wiring in `frontend/src/App.jsx`:
+    - api methods: `historyList`, `historyGet`, `historyRestore`
+    - callback restore in reducer (`LOAD`) + toast feedback
+  - build frontend PASS
+
+- [x] (2026-03-03) Started Miro++ baseline: board version history API (+ restore snapshot).
+  - backend `server.js`:
+    - schema extinsa cu `versions`, `latest_version_hash`, `last_version_at`
+    - endpoints noi:
+      - `GET /api/boards/:id/history`
+      - `GET /api/boards/:id/history/:versionId`
+      - `POST /api/boards/:id/history/:versionId/restore`
+    - snapshot capture la create/save/restore cu rolling updates pe interval scurt
+  - smoke test local API flow PASS (create -> save -> history -> restore)
+
+- [x] (2026-03-02) Refactor phase 3: domain state (`helpers + reducer`) extras in modul dedicat.
+  - fisier nou: `frontend/src/state/boardState.js`
+  - fabrica noua: `createBoardState({ T, SC, CANVAS_THEMES, uid })`
+  - mutat:
+    - constants/helpers (`GRID`, `snap`, `SHAPE_DEFAULTS`, `SHAPE_TYPES`, `TABLE_*`, `TIDY_GAP_*`, `MINDMAP_CHILD_GAP_*`)
+    - template registry `TPLS`
+    - reducer + `INIT`
+  - `App.jsx` consuma acum state domain prin destructuring din `createBoardState(...)`
+  - build PASS
+
+- [x] (2026-03-02) Refactor phase 2: `RightPanel` extras in component + hook dedicate.
+  - fisier nou: `frontend/src/components/RightPanel.jsx`
+  - fisier nou: `frontend/src/hooks/useRightPanelAi.js`
+  - mutata logica AI/file-flow din `RightPanel` local in hook (`send`, `handleFile`, `runFileGeneration`, parsing/normalizare)
+  - `App.jsx` foloseste componenta importata `RightPanel`
+  - build PASS
+
+- [x] (2026-03-02) Refactor phase 1: AI prompts/helpers extrase din `App.jsx`.
+  - fisiere noi:
+    - `frontend/src/ai/prompts.js`
+    - `frontend/src/ai/helpers.js`
+  - mutat:
+    - prompturi (`WB_SYS`, `SW_PLAN_SYS`, `SW_SYS`)
+    - constante template/chips
+    - helpers (`aiCall`, `parseAiJson`, `normalizeTemplatePlan`, `buildFileGenerationPrompt`)
+  - `RightPanel` consuma acum modulele noi
+  - build PASS
+
+- [x] (2026-03-02) Implementate toate cele 3 functionalitati cerute de utilizator.
+  - tabel:
+    - shift-range selection
+    - `TABLE_MERGE_SEL` / `TABLE_UNMERGE_SEL`
+    - butoane merge/unmerge in `PropsPanel`
+  - swimlanes:
+    - tool `laneH` (`J`) si `laneV` (`K`)
+    - `LaneNode` + context menu entries + orientation switch in `PropsPanel`
+  - dependency mode:
+    - `DEP_MODE` toggle (`Ctrl+Shift+D` + toolbar)
+    - highlight upstream/downstream + dim for non-related nodes/edges
+  - build PASS
+
+- [x] (2026-03-02) Functionalitati noi pentru organizare rapida board.
+  - `TIDY` (auto-layout) + shortcut `Ctrl+Shift+L`
+  - `WRAP_FRAME` (incadrare selectie in frame)
+  - mind-map shortcuts:
+    - `Tab` child sticky + arrow
+    - `Enter` sibling node (+ relink la acelasi parinte cand exista)
+  - butoane noi in toolbar + entries in context menu
+  - build PASS
+
+- [x] (2026-03-02) Upload fisiere: template recommendation + alegere explicita.
+  - planner AI (`SW_PLAN_SYS`) cu recomandare template + alternatives + complexity + table need
+  - card UI in RightPanel pentru selectie template
+  - generarea board-ului ruleaza doar dupa alegere template
+  - promptul de generatie (`SW_SYS`) respecta template-ul ales si detectia de tabel
+  - `npm run build` PASS
+
+- [x] (2026-03-02) Table editor basic peste tool-ul `table`.
+  - metadata tabel pe noduri: `tableId/tableRole/tableRow/tableCol`
+  - actiuni reducer:
+    - `TABLE_ADD_ROW`
+    - `TABLE_DEL_ROW`
+    - `TABLE_ADD_COL`
+    - `TABLE_DEL_COL`
+    - `TABLE_SET_COL_WIDTH`
+  - controale in `PropsPanel` pentru rows/cols + column width
+  - paste remap pentru `groupId` si `tableId`
+  - `npm run build` PASS
+
+- [x] (2026-03-02) Extins editorul cu forme Miro-style + tool tabel.
+  - forme noi: `triangle`, `hexagon`, `parallelogram`, `cloud`, `cylinder`
+  - toolbar + shortcuts noi (`Y`, `X`, `Q`, `U`, `I`, `B`)
+  - context menu extins pentru insert rapid forme/tabel
+  - `makeTablePack()` pentru tabel tip spreadsheet pe canvas
+  - template nou: `Cloud Architecture`
+  - AI schema + normalizer aliniate la noile shape types
+  - `npm run build` PASS
+
+- [x] (2026-03-02) Fix Spider generation (`JSON invalid`) + passive wheel warnings.
+  - Frontend:
+    - wheel listener non-passive (`passive:false`) pentru canvas zoom/pan
+    - eliminat warning-ul de `preventDefault` din passive listener
+    - parser/normalizer AI extins pentru output imperfect
+  - Backend:
+    - `/api/ai/complete` cu JSON mode + fallback + repair
+    - response include `json` validat + `repaired` flag
+  - Deployed live pe `board.private-driver.ro` cu smoke checks PASS.
+
+- [x] (2026-03-02) Script automat de deploy pentru board live.
+  - fisier nou: `ops/deploy_board.ps1`
+  - flux: build -> upload -> install -> restart service -> nginx test/reload -> smoke checks
+  - validat end-to-end pe `board.private-driver.ro`
+  - optiuni suportate:
+    - `-SkipBuild`
+    - `-IncludeEnv`
+    - `-UploadBoardsData`
+
+- [x] (2026-03-02) Deploy live pe Hetzner: `board.private-driver.ro`.
+  - Build frontend publicat in `/var/www/board/dist`.
+  - Backend Node publicat in `/var/www/board/backend`.
+  - Service nou: `board-private-driver.service` (port `8925`).
+  - Nginx vhost nou + SSL Let's Encrypt pentru domeniu.
+  - Smoke live:
+    - `/` 200
+    - `/api/health` 200
+    - `/api/ai/complete` 200
+    - `/socket.io` handshake OK
+
+- [x] (2026-03-02) Prompt DeepSeek extins pentru suport "orice idee" + focus Miro-grade.
+  - `WB_SYS` transformat intr-un facilitation prompt complex (strategie + produs + engineering + execution).
+  - `SW_SYS` extins pentru knowledge mapping din fisiere.
+  - `aiCall` crescut la `maxTokens: 1400`.
+  - parser JSON harden in `RightPanel` (`parseAiJson` fallback extraction).
+
+- [x] (2026-03-02) Inlocuire integrare AI cu DeepSeek.
+  - Backend: endpoint nou `POST /api/ai/complete`.
+  - Frontend: `aiCall` mutat pe backend API.
+  - Config env: `backend/.env` + `backend/.env.example`.
+
+- [x] (2026-03-02) Aliniere completa `agents.md` si folder `ai/` la proiectul BoardAI.
+
+- [x] (2026-03-05) Mobile Stability & Premium UX sprint pass.
+  - Canvas touch stability:
+    - long-press 400ms + 10px threshold
+    - RAF throttled touch drag
+    - pinch always active
+    - pointer capture hooks + overscroll lock
+  - Mobile mode safety:
+    - mode mapping via `modeController`
+    - add -> navigate (default)
+    - connect -> select
+    - global exit mode wired in mobile bar / more sheet
+  - Android back order:
+    - close sheet -> close menus -> close canvas overlays -> exit mode -> page back
+  - Mobile quick actions bar:
+    - Duplicate / Style / Connect / Delete
+  - Mobile connector context:
+    - long-press connector opens grouped actions
+  - Keyboard-safe sheet:
+    - `visualViewport` + keyboard inset handling in `MobileBottomSheet`
+  - Validation:
+    - `npm run build` PASS
+    - `npm run test:connectors` PASS
+
+- [x] (2026-03-05) Connector select/edit parity pe desktop + mobil.
+  - selectie conector robusta:
+    - connector SVG layer cu pointer events active
+    - hit-area marita pe path invizibil
+    - selectie touch mai fiabila pe mobil
+  - editare conector pe mobil:
+    - bottom sheet dedicat cu routing/style/caps/jumps/default/delete
+  - desktop:
+    - popover style editor ramas activ (non-mobile)
+  - Validation:
+    - `npm run build` PASS
+    - `npm run test:connectors` PASS
+
+- [x] (2026-03-05) Mobile Creation Engine touch-first sprint.
+  - radial add menu pe long-press canvas
+  - drag-to-connect cu auto-create node pe empty drop
+  - gesture shortcuts:
+    - double tap canvas/node
+    - two-finger swipe undo/redo
+  - quick duplicate gesture (drag + second finger)
+  - smart placement contextual
+  - auto arrange mobil (vertical/horizontal/grid)
+  - AI quick insert in `More` sheet
+  - Validation:
+    - `npm run build` PASS
+    - `npm run test:connectors` PASS
+
+## Backlog (priority order)
+1. [ ] Execution wedge v1 complet: PRD/repo/issues -> plan executabil actionabil.
+2. [ ] AI differentiator v2: sync bidirectional plan/tasks cu GitHub/Jira/Azure.
+3. [ ] Integrari critice v1: Jira/Azure DevOps, Confluence/Notion, Slack/Teams, GitHub.
+4. [ ] Scale/perf: virtualizare board mare, conflict resolution robust, offline queue.
+5. [ ] Enterprise trust: SSO/SCIM + guardrails/eDiscovery/classification.
+6. [ ] Platform extensibila: SDK/REST app surface + marketplace-ready model.
+7. [ ] GTM product surface: template library verticala + onboarding <60 sec.
+
+- [x] (2026-03-05) AI Thinking Engine v1 (UI-layer only, preview-first)
+  - prompt system nou: `THINKING_SYS` + example prompts
+  - hook nou: `useThinkingCopilot` (context extraction + intents + smart suggestions + preview/commit)
+  - UI nou: `AiThinkingPanel` (copilot input, intent actions, decision block, confirm insert)
+  - integrare in `RightPanel` (desktop sidebar + mobile panel sheet)
+  - Validation:
+    - `npm.cmd run build` PASS
