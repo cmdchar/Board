@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 const { createSemanticModule } = require('./server/modules/semantic');
 const { createVaultService, createVaultRouter } = require('./server/modules/vault');
+const { createEmbeddingsService } = require('./server/modules/embeddings/service');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -101,6 +102,10 @@ const vault = createVaultService({
   dataDir,
   logger: console,
   secretKey: process.env.VAULT_SECRET_KEY || JWT_RUNTIME_SECRET,
+});
+const embeddings = createEmbeddingsService({
+  dataDir,
+  logger: console,
 });
 const AUDIT_MAX_EVENTS = Math.max(1000, Math.min(200000, Number(process.env.AUDIT_MAX_EVENTS) || 20000));
 const authRateBuckets = new Map();
@@ -2437,6 +2442,22 @@ app.use(cors({
 app.use(express.json({ limit: '20mb' }));
 app.use('/api/vault', createVaultRouter({ requireAuth, vault }));
 
+app.post('/api/boards/:id/embeddings/search', requireAuth, async (req, res) => {
+  const { q, limit } = req.body;
+  if (!q) return res.status(400).json({ error: 'Query is required' });
+  const db = readDB();
+  const board = db[req.params.id];
+  if (!board) return res.status(404).json({ error: 'Board not found' });
+  if (!canReadBoard(board, req.user)) return res.status(403).json({ error: 'Access denied' });
+
+  try {
+    const results = await embeddings.searchSimilarNotes(req.params.id, q, limit);
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function clientIp(req) {
   const fwd = req.headers['x-forwarded-for'];
   if (typeof fwd === 'string' && fwd.trim()) {
@@ -3347,6 +3368,13 @@ app.put('/api/boards/:id', optAuth, (req, res) => {
       trigger: 'board.save',
       nowSec: db[req.params.id].updated_at,
     });
+    // Update note embeddings
+    const boardData = db[req.params.id].data;
+    if (boardData && Array.isArray(boardData.nodes)) {
+      boardData.nodes.filter(n => n.type === 'note' && n.text).forEach(note => {
+        embeddings.updateNoteEmbedding(board.id, note.id, note.text).catch(e => console.error('[embeddings] push failed', e.message));
+      });
+    }
   }
   if (nameChanged) {
     appendAuditEvent({

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AI_CHIPS, FILE_TEMPLATE_LABELS } from "../ai/prompts";
 import { useRightPanelAi } from "../hooks/useRightPanelAi";
 import { useThinkingCopilot } from "../hooks/useThinkingCopilot";
@@ -16,6 +17,8 @@ import ExecutionPanel from "./ExecutionPanel";
 import CollaborationPanel from "./CollaborationPanel";
 import AgentPanel from "./AgentPanel";
 import VaultPanel from "./VaultPanel";
+import KnowledgeBasePanel from "./KnowledgeBasePanel";
+import { Book } from "lucide-react";
 
 export default function RightPanel({
   s,
@@ -136,6 +139,7 @@ export default function RightPanel({
   const [vaultOpen, setVaultOpen] = useState(true);
   const [collabOpen, setCollabOpen] = useState(true);
   const [agentsOpen, setAgentsOpen] = useState(true);
+  const [kbOpen, setKbOpen] = useState(true);
   const thinking = useThinkingCopilot({
     s,
     d,
@@ -192,13 +196,13 @@ export default function RightPanel({
     onUpdateConnector(selectedConnector.id, { style: patch });
   };
   const panelStyle = fill
-    ?{
+    ? {
       width: panelWidth,
-      background: `linear-gradient(160deg, ${T.bg1}, ${T.bg2})`,
+      background: `${T.bg1}ee`,
       borderLeft: `1px solid ${T.b0}`,
-      backdropFilter: "blur(14px)",
-      WebkitBackdropFilter: "blur(14px)",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
+      backdropFilter: "blur(24px)",
+      WebkitBackdropFilter: "blur(24px)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,.02)",
       display: "flex",
       flexDirection: "column",
       flexShrink: 1,
@@ -207,18 +211,18 @@ export default function RightPanel({
       overflowY: "auto",
       WebkitOverflowScrolling: "touch",
     }
-    :{
+    : {
       position: "absolute",
       top: topOffset,
       right: rightInset,
       bottom: 14,
       width: panelWidth,
-      background: `linear-gradient(160deg, ${T.bg1}, ${T.bg2})`,
+      background: `${T.bg1}dd`,
       border: `1px solid ${T.b1}`,
-      borderRadius: 14,
-      backdropFilter: "blur(14px)",
-      WebkitBackdropFilter: "blur(14px)",
-      boxShadow: "0 20px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05)",
+      borderRadius: 20,
+      backdropFilter: "blur(32px)",
+      WebkitBackdropFilter: "blur(32px)",
+      boxShadow: "0 32px 64px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05)",
       overflowY: "auto",
       WebkitOverflowScrolling: "touch",
       display: "flex",
@@ -226,120 +230,241 @@ export default function RightPanel({
       zIndex: 240,
     };
 
-  return <div className="slide" style={panelStyle}>
-    {!fill&&<div style={{ padding: "12px 12px 10px", borderBottom: `1px solid ${T.b0}`, background: T.bg2, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-      <span style={{ width: 26, height: 26, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", background: T.yBg, color: T.y, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 12 }}>
-        R
-      </span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: T.t0 }}>Panel</div>
-        <div style={{ fontSize: 11, color: T.t2 }}>Properties, AI, history, access</div>
+  const sectionContentVariants = {
+    open: { height: "auto", opacity: 1, overflow: "hidden" },
+    collapsed: { height: 0, opacity: 0, overflow: "hidden" }
+  };
+
+  return <motion.div
+    initial={fill ? {} : { x: 400, opacity: 0 }}
+    animate={{ x: 0, opacity: 1 }}
+    exit={{ x: 400, opacity: 0 }}
+    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+    style={panelStyle}
+  >
+    {!fill && (
+      <div style={{
+        padding: "20px 18px 16px",
+        borderBottom: `1px solid ${T.b0}`,
+        background: `${T.bg2}55`,
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        flexShrink: 0,
+        backdropFilter: "blur(10px)"
+      }}>
+        <div style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: T.yBg,
+          color: T.y,
+          border: `1px solid ${T.yDim}`,
+          boxShadow: `0 0 15px ${T.y}22`
+        }}>
+          <Book size={16} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: T.t0, fontFamily: "'Instrument Serif',serif", letterSpacing: "-.01em" }}>Obsidian Studio</div>
+          <div style={{ fontSize: 11, color: T.t2, fontFamily: "'JetBrains Mono',monospace", opacity: 0.7 }}>EDITION 2026</div>
+        </div>
+        {onRequestClose && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onRequestClose}
+            style={{
+              height: 28,
+              padding: "0 12px",
+              borderRadius: 8,
+              border: `1px solid ${T.b1}`,
+              background: T.bg3,
+              color: T.t1,
+              fontSize: 10,
+              cursor: "pointer",
+              fontFamily: "'JetBrains Mono',monospace",
+              fontWeight: 700,
+              letterSpacing: ".05em"
+            }}
+          >
+            CLOSE
+          </motion.button>
+        )}
       </div>
-      {onRequestClose&&<button onClick={onRequestClose} style={{ height: 30, minWidth: 56, padding: "0 10px", borderRadius: 8, border: `1px solid ${T.b1}`, background: T.bg1, color: T.t1, fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
-        Hide
-      </button>}
-    </div>}
-    <div style={{ borderBottom: `1px solid ${T.b0}`, padding: "10px 12px", background: T.bg1, flexShrink: 0 }}>
-      <div style={{ fontSize: 10, color: T.t2, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>CONTEXT INSPECTOR</div>
-      <div style={{ marginTop: 4, fontSize: 12.5, color: T.t0, fontWeight: 700 }}>{contextLabel}</div>
-      {contextMode === "connector" && selectedConnector && <div style={{ marginTop: 8, display: "grid", gap: 6, border: `1px solid ${T.b1}`, borderRadius: 9, background: T.bg2, padding: "8px 8px 7px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 6 }}>
-          {["straight", "ortho", "curved", "wavy"].map((routing) => <button key={routing} onClick={() => onUpdateConnector?.(selectedConnector.id, { routing })} style={{ minHeight: 32, borderRadius: 8, border: `1px solid ${selectedConnector.routing === routing ? T.yDim : T.b1}`, background: selectedConnector.routing === routing ? T.yBg : T.bg3, color: selectedConnector.routing === routing ? T.y : T.t0, cursor: "pointer", fontSize: 10, fontFamily: "'JetBrains Mono',monospace" }}>
-            {routing}
-          </button>)}
+    )}
+    <div style={{ borderBottom: `1px solid ${T.b0}`, padding: "14px 18px", background: `${T.bg1}55`, flexShrink: 0 }}>
+      <div style={{ fontSize: 9, color: T.t2, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".1em", opacity: 0.6, marginBottom: 4 }}>CONTEXT INSPECTOR</div>
+      <div style={{ fontSize: 14, color: T.t0, fontWeight: 700, fontFamily: "'DM Sans',sans-serif" }}>{contextLabel}</div>
+      {contextMode === "connector" && selectedConnector && (
+        <div style={{ marginTop: 12, display: "grid", gap: 8, border: `1px solid ${T.b1}`, borderRadius: 12, background: `${T.bg2}aa`, padding: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 6 }}>
+            {["straight", "ortho", "curved", "wavy"].map((routing) => (
+              <button key={routing} onClick={() => onUpdateConnector?.(selectedConnector.id, { routing })} style={{ minHeight: 30, borderRadius: 6, border: `1px solid ${selectedConnector.routing === routing ? T.yDim : T.b1}`, background: selectedConnector.routing === routing ? T.yBg : T.bg3, color: selectedConnector.routing === routing ? T.y : T.t1, cursor: "pointer", fontSize: 9, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
+                {routing}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 6 }}>
+            {["solid", "dashed", "dotted"].map((dash) => (
+              <button key={dash} onClick={() => updateConnectorStyle({ dash })} style={{ minHeight: 30, borderRadius: 6, border: `1px solid ${connectorStyle.dash === dash ? T.yDim : T.b1}`, background: connectorStyle.dash === dash ? T.yBg : T.bg3, color: connectorStyle.dash === dash ? T.y : T.t1, cursor: "pointer", fontSize: 9, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
+                {dash}
+              </button>
+            ))}
+          </div>
+          <input
+            value={selectedConnector.label || ""}
+            onChange={(e) => onUpdateConnector?.(selectedConnector.id, { label: e.target.value })}
+            placeholder="Connector label..."
+            style={{ minHeight: 36, borderRadius: 8, border: `1px solid ${T.b1}`, background: T.bg3, color: T.t0, padding: "0 10px", fontSize: 12, outline: "none", fontFamily: "inherit" }}
+          />
+          <button onClick={() => onDeleteConnector?.(selectedConnector.id)} style={{ minHeight: 36, borderRadius: 8, border: `1px solid ${T.red}33`, background: `${T.red}11`, color: T.red, cursor: "pointer", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700 }}>
+            REMOVE CONNECTOR
+          </button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 6 }}>
-          {["solid", "dashed", "dotted"].map((dash) => <button key={dash} onClick={() => updateConnectorStyle({ dash })} style={{ minHeight: 32, borderRadius: 8, border: `1px solid ${connectorStyle.dash === dash ? T.yDim : T.b1}`, background: connectorStyle.dash === dash ? T.yBg : T.bg3, color: connectorStyle.dash === dash ? T.y : T.t0, cursor: "pointer", fontSize: 10, fontFamily: "'JetBrains Mono',monospace" }}>
-            {dash}
-          </button>)}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 6 }}>
-          {[1, 2, 3, 4].map((width) => <button key={width} onClick={() => updateConnectorStyle({ width })} style={{ minHeight: 32, borderRadius: 8, border: `1px solid ${Math.round(connectorStyle.width || 2) === width ? T.yDim : T.b1}`, background: Math.round(connectorStyle.width || 2) === width ? T.yBg : T.bg3, color: Math.round(connectorStyle.width || 2) === width ? T.y : T.t0, cursor: "pointer", fontSize: 10, fontFamily: "'JetBrains Mono',monospace" }}>
-            {width}px
-          </button>)}
-        </div>
-        <input
-          value={selectedConnector.label || ""}
-          onChange={(e) => onUpdateConnector?.(selectedConnector.id, { label: e.target.value })}
-          placeholder="Connector label..."
-          style={{ minHeight: 34, borderRadius: 8, border: `1px solid ${T.b1}`, background: T.bg3, color: T.t0, padding: "0 8px", fontSize: 11, outline: "none" }}
-        />
-        <button onClick={() => onDeleteConnector?.(selectedConnector.id)} style={{ minHeight: 34, borderRadius: 8, border: `1px solid ${T.red}`, background: "transparent", color: T.red, cursor: "pointer", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700 }}>
-          Delete connector
-        </button>
-      </div>}
+      )}
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setThinkingOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>AI THINKING</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{thinking.loading ? "thinking..." : "copilot"}</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{thinkingOpen ? "v" : ">"}</span>
+      <div onClick={() => setThinkingOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "16px 18px", cursor: "pointer", userSelect: "none", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = `${T.bg2}33`} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".12em" }}>CO-PILOT THINKING</span>
+        <span style={{ marginLeft: "auto", fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono',monospace" }}>{thinking.loading ? "PROCESSING" : "READY"}</span>
+        <motion.span animate={{ rotate: thinkingOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {thinkingOpen && <AiThinkingPanel T={T} thinking={thinking} />}
+      <AnimatePresence>
+        {thinkingOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <div style={{ padding: "0 6px 12px" }}>
+              <AiThinkingPanel T={T} thinking={thinking} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     {contextMode === "spreadsheet" && <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setSpreadsheetOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>SPREADSHEET AI</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{spreadsheetAi.enabled ? "active" : "idle"}</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{spreadsheetOpen ? "v" : ">"}</span>
+      <div onClick={() => setSpreadsheetOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>SPREADSHEET AI</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{spreadsheetAi.enabled ? "active" : "idle"}</span>
+        <motion.span animate={{ rotate: spreadsheetOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {spreadsheetOpen && <SpreadsheetAiPanel T={T} model={spreadsheetAi} />}
+      <AnimatePresence>
+        {spreadsheetOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <SpreadsheetAiPanel T={T} model={spreadsheetAi} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>}
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setExecutionOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>EXECUTION</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{execution.stats.totalTasks} tasks</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{executionOpen ? "v" : ">"}</span>
+      <div onClick={() => setKbOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>KNOWLEDGE BASE</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{s.nodes.filter(n => n.type === 'note').length} notes</span>
+        <motion.span animate={{ rotate: kbOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {executionOpen && <ExecutionPanel T={T} execution={execution} onToggleTimeline={onToggleTimeline} timelineOpen={timelineOpen} />}
+      <AnimatePresence>
+        {kbOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <KnowledgeBasePanel
+              nodes={s.nodes}
+              T={T}
+              selectedNodeId={s.sel.length === 1 ? s.sel[0] : null}
+              onFocusNote={(id) => {
+                d({ type: "SEL", v: [id] });
+                const node = s.nodes.find(n => n.id === id);
+                if (node) {
+                  const cx = (node.x || 0) + (node.w || 300) / 2;
+                  const cy = (node.y || 0) + (node.h || 400) / 2;
+                  const tx = window.innerWidth * 0.5 - cx * s.zoom;
+                  const ty = window.innerHeight * 0.42 - cy * s.zoom;
+                  d({ type: "PAN", x: tx, y: ty });
+                }
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setVaultOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>PROJECT VAULT</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>registry</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{vaultOpen ? "v" : ">"}</span>
+      <div onClick={() => setExecutionOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>EXECUTION</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{execution.stats.totalTasks} tasks</span>
+        <motion.span animate={{ rotate: executionOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {vaultOpen && <VaultPanel T={T} vaultApi={vaultApi} notify={notify} />}
+      <AnimatePresence>
+        {executionOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <ExecutionPanel T={T} execution={execution} onToggleTimeline={onToggleTimeline} timelineOpen={timelineOpen} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setCollabOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>COLLABORATION</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{Array.isArray(collab?.users) ? collab.users.length : 0} online</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{collabOpen ? "v" : ">"}</span>
+      <div onClick={() => setVaultOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>PROJECT VAULT</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>registry</span>
+        <motion.span animate={{ rotate: vaultOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {collabOpen && <CollaborationPanel
-        T={T}
-        users={collab?.users || []}
-        myPresence={collab?.presence || "active"}
-        onPresenceChange={collab?.setPresence}
-        activity={collab?.activity || []}
-        comments={collab?.comments || []}
-        onFocusComment={collab?.focusComment}
-        onDeleteComment={collab?.deleteComment}
-        onReplyComment={collab?.replyComment}
-        meetingNotes={collab?.meetingNotes || ""}
-        setMeetingNotes={collab?.setMeetingNotes}
-        runMeetingAssistant={collab?.runMeetingAssistant}
-        meetingBusy={Boolean(collab?.meetingBusy)}
-        meetingSuggestions={collab?.meetingSuggestions || null}
-        applyMeetingSuggestions={collab?.applyMeetingSuggestions}
-      />}
+      <AnimatePresence>
+        {vaultOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <VaultPanel T={T} vaultApi={vaultApi} notify={notify} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setAgentsOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>AI AGENTS</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{agents.busyAgent ? "running" : "idle"}</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{agentsOpen ? "v" : ">"}</span>
+      <div onClick={() => setCollabOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>COLLABORATION</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{Array.isArray(collab?.users) ? collab.users.length : 0} online</span>
+        <motion.span animate={{ rotate: collabOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {agentsOpen && <AgentPanel T={T} agents={agents} />}
+      <AnimatePresence>
+        {collabOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <CollaborationPanel
+              T={T}
+              users={collab?.users || []}
+              myPresence={collab?.presence || "active"}
+              onPresenceChange={collab?.setPresence}
+              activity={collab?.activity || []}
+              comments={collab?.comments || []}
+              onFocusComment={collab?.focusComment}
+              onDeleteComment={collab?.deleteComment}
+              onReplyComment={collab?.replyComment}
+              meetingNotes={collab?.meetingNotes || ""}
+              setMeetingNotes={collab?.setMeetingNotes}
+              runMeetingAssistant={collab?.runMeetingAssistant}
+              meetingBusy={Boolean(collab?.meetingBusy)}
+              meetingSuggestions={collab?.meetingSuggestions || null}
+              applyMeetingSuggestions={collab?.applyMeetingSuggestions}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setFileOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>SPIDER WEB - FILE</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{fl ? "loading..." : (fn ? "ready" : "idle")}</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{fileOpen ? "v" : ">"}</span>
+      <div onClick={() => setAgentsOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>AI AGENTS</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{agents.busyAgent ? "running" : "idle"}</span>
+        <motion.span animate={{ rotate: agentsOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {fileOpen&&<>
+      <AnimatePresence>
+        {agentsOpen && (
+          <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
+            <AgentPanel T={T} agents={agents} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+    <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
+      <div onClick={() => setFileOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>SPIDER WEB - FILE</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{fl ? "loading..." : (fn ? "ready" : "idle")}</span>
+        <motion.span animate={{ rotate: fileOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
+      </div>
+      <AnimatePresence>
+      {fileOpen&&<motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants}>
     <FileZone onFile={handleFile} loading={fl} fn={fn} summary={fs} error={fe} T={T} />
     {filePlan && fileDraft && !fl && <div style={{ borderBottom: `1px solid ${T.b0}`, padding: "10px 12px", background: T.bg1, flexShrink: 0 }}>
       <div style={{ fontSize: 10.5, fontWeight: 600, color: T.y, marginBottom: 8, fontFamily: "'JetBrains Mono',monospace", display: "flex", alignItems: "center", gap: 6 }}>
@@ -370,15 +495,17 @@ export default function RightPanel({
         Genereaza cu recomandarea AI
       </button>
     </div>}
-      </>}
+      </motion.div>}
+      </AnimatePresence>
     </div>
     <div style={{ borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
-      <div onClick={() => setExecOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>EXECUTION PLAN</span>
-        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2 }}>{execLoading ? "running..." : "mvp"}</span>
-        <span style={{ fontSize: 9, color: T.t2 }}>{execOpen ? "v" : ">"}</span>
+      <div onClick={() => setExecOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".06em" }}>EXECUTION PLAN</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.t2, opacity: 0.8 }}>{execLoading ? "running..." : "mvp"}</span>
+        <motion.span animate={{ rotate: execOpen ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
       </div>
-      {execOpen && <div style={{ padding: "0 10px 10px" }}>
+      <AnimatePresence>
+      {execOpen && <motion.div initial="collapsed" animate="open" exit="collapsed" variants={sectionContentVariants} style={{ padding: "0 10px 10px" }}>
         <textarea
           value={execInput}
           onChange={e => setExecInput(e.target.value)}
@@ -502,7 +629,8 @@ export default function RightPanel({
         <button onClick={runJiraImport} disabled={jiraLoading || !String(jiraSite || "").trim()} style={{ width: "100%", background: jiraLoading ? T.bg3 : T.yBg, border: `1px solid ${jiraLoading ? T.b1 : T.yDim}`, color: jiraLoading ? T.t2 : T.y, padding: "6px 8px", borderRadius: 7, fontSize: 10, cursor: jiraLoading ? "not-allowed" : "pointer", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
           {jiraLoading ? "Importing..." : "Import Jira -> Board"}
         </button>
-      </div>}
+      </motion.div>}
+      </AnimatePresence>
     </div>
     {(contextMode === "node" || contextMode === "spreadsheet") && <PropsPanel
       s={s}
@@ -534,12 +662,13 @@ export default function RightPanel({
       </div>)}
     </div>}
 
-    <div onClick={() => setOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", cursor: "pointer", userSelect: "none", borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
+    <div onClick={() => setOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer", userSelect: "none", borderBottom: `1px solid ${T.b0}`, flexShrink: 0 }}>
       <div style={{ width: 6, height: 6, borderRadius: "50%", background: loading ? T.y : T.green, animation: loading ? "pulse 1s infinite" : "none" }} />
-      <span style={{ fontSize: 10, fontWeight: 600, color: T.t0, fontFamily: "'JetBrains Mono',monospace", flex: 1, letterSpacing: ".06em" }}>ASISTENT AI</span>
-      <span style={{ fontSize: 9, color: T.t2 }}>{open ? "v" : ">"}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: T.t0, fontFamily: "'JetBrains Mono',monospace", flex: 1, letterSpacing: ".06em" }}>ASISTENT AI</span>
+      <motion.span animate={{ rotate: open ? 90 : 0 }} style={{ fontSize: 10, color: T.t3 }}>→</motion.span>
     </div>
-    {open && <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden", padding: "9px 9px 7px", minHeight: 0 }}>
+    <AnimatePresence>
+    {open && <motion.div initial="collapsed" animate="open" exit="collapsed" variants={{ open: { flex: 1, opacity: 1 }, collapsed: { flex: 0, height: 0, opacity: 0 } }} style={{ display: "flex", flexDirection: "column", overflow: "hidden", padding: "9px 9px 7px", minHeight: 0 }}>
       {msgs.length === 0 && <div style={{ marginBottom: 9 }}>
         <p style={{ fontSize: 11, color: T.t2, marginBottom: 7, lineHeight: 1.5 }}>Generez orice structura pe canvas:</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -568,7 +697,8 @@ export default function RightPanel({
         <button onClick={() => send()} disabled={loading} style={{ width: 32, height: 32, background: loading ? T.bg3 : T.yBg, border: `1px solid ${loading ? T.b1 : T.yDim}`, borderRadius: 7, color: loading ? T.t3 : T.y, fontSize: 15, cursor: loading ? "not-allowed" : "pointer", flexShrink: 0 }}>{"->"}</button>
       </div>
       <button onClick={clearAll} style={{ marginTop: 5, background: "transparent", border: `1px solid ${T.b0}`, color: T.t2, padding: "4px", borderRadius: 5, fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".04em" }} onMouseEnter={e => { e.currentTarget.style.borderColor = T.red; e.currentTarget.style.color = "#fca5a5"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = T.b0; e.currentTarget.style.color = T.t2; }}>CLEAR ALL</button>
-    </div>}
-  </div>;
+    </motion.div>}
+    </AnimatePresence>
+  </motion.div>;
 }
 

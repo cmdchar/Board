@@ -309,6 +309,8 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
   const [preview, setPreview] = useState(null);
   const [lastRun, setLastRun] = useState(null);
   const [replaceOnInsert, setReplaceOnInsert] = useState(false);
+  const [semanticClusters, setSemanticClusters] = useState([]);
+  const [semanticLoading, setSemanticLoading] = useState(false);
 
   const selectedNodes = useMemo(() => {
     const selected = new Set(toArray(s.sel));
@@ -539,6 +541,55 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
   const runDecisionHelper = useCallback(() => runIntent(INTENTS.decision_helper, prompt), [prompt, runIntent]);
   const runSummary = useCallback(() => runIntent(INTENTS.summary, prompt), [prompt, runIntent]);
 
+  const findSemanticClusters = useCallback(async () => {
+    if (semanticLoading) return;
+    setSemanticLoading(true);
+    try {
+      // Find related notes using semantic search logic
+      const notes = s.nodes.filter(n => n.type === 'note' && n.text.length > 20);
+      if (notes.length < 2) {
+        setSemanticClusters([]);
+        return;
+      }
+
+      // Logic: Pick a few notes and search for similar ones to form clusters
+      const clusters = [];
+      const seenIds = new Set();
+
+      for (const note of notes.slice(0, 5)) {
+        if (seenIds.has(note.id)) continue;
+
+        const title = note.text.split('\n')[0].replace(/^#+\s*/, '').trim() || 'Note';
+        const res = await fetch(`/api/boards/${s.boardId}/embeddings/search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("boardai_token")}`
+          },
+          body: JSON.stringify({ q: note.text.slice(0, 500), limit: 4 }),
+        }).then(r => r.json());
+
+        if (res.results && res.results.length > 1) {
+          const matches = res.results.filter(m => m.id !== note.id && m.score > 0.82);
+          if (matches.length > 0) {
+            clusters.push({
+              id: `cluster-${note.id}`,
+              label: `Related to "${cut(title, 20)}"`,
+              members: [note.id, ...matches.map(m => m.id)]
+            });
+            seenIds.add(note.id);
+            matches.forEach(m => seenIds.add(m.id));
+          }
+        }
+      }
+      setSemanticClusters(clusters);
+    } catch (err) {
+      console.error("Semantic clustering failed", err);
+    } finally {
+      setSemanticLoading(false);
+    }
+  }, [s.boardId, s.nodes, semanticLoading]);
+
   return {
     prompt,
     setPrompt,
@@ -550,6 +601,9 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
     setReplaceOnInsert,
     selectedCount: selectedNodes.length,
     smartSuggestions,
+    semanticClusters,
+    semanticLoading,
+    findSemanticClusters,
     examplePrompts: THINKING_EXAMPLE_PROMPTS,
     runBoardGeneration,
     runFlowGeneration,

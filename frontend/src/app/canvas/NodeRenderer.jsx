@@ -28,8 +28,10 @@ export default function NodeRenderer({
   formulaHighlightSheetSet,
   sheetAiAnomalyMapBySheet,
   components,
+  T,
+  nodes = [],
 }) {
-  const { Sticky, TaskNode, MilestoneNode, DecisionNode, TransformNode, ChartNode, KpiNode, Shape, TxtNode, ImgNode, FrameNode, LaneNode, SpreadsheetNode, DeckNode } = components || {};
+  const { Sticky, TaskNode, MilestoneNode, DecisionNode, TransformNode, ChartNode, KpiNode, Shape, TxtNode, ImgNode, FrameNode, LaneNode, SpreadsheetNode, DeckNode, NoteNode } = components || {};
   return (
     <div className={nodeDragActive ? "node-drag-active" : ""} style={{ position: "absolute", inset: 0, zIndex: 10 }}>
       {sortedNodes.map((node) => {
@@ -54,7 +56,6 @@ export default function NodeRenderer({
           d({ type: "UPD", id, p: patch });
         };
         const p = {
-          key: renderNode.id,
           node: renderNode,
           sel: isSel,
           depFade,
@@ -63,38 +64,42 @@ export default function NodeRenderer({
           onUpd: onNodeUpdate,
           onRSt,
           onRotSt,
+          RH: components?.RH,
           votes: votes[renderNode.id] || 0,
           onVote: (id) => d({ type: "ADD_VOTE", nodeId: id }),
           voteMode: tool === "vote",
         };
-        if (renderNode.type === "sticky") return <Sticky {...p} />;
-        if (renderNode.type === "task") return <TaskNode {...p} blockedByDeps={blockedByDepNodeSet.has(renderNode.id)} />;
-        if (renderNode.type === "milestone") return <MilestoneNode {...p} milestoneStats={milestoneStatsByNode[renderNode.id] || { done: 0, total: 0 }} />;
-        if (renderNode.type === "decision") return <DecisionNode {...p} />;
-        if (renderNode.type === "transform") return <TransformNode {...p} />;
-        if (renderNode.type === "chart") return <ChartNode {...p} />;
-        if (isKpiNodeLike(renderNode)) return <KpiNode {...p} />;
-        if (renderNode.type === "shape") return <Shape {...p} />;
-        if (renderNode.type === "text") return <TxtNode {...p} />;
-        if (renderNode.type === "image") return <ImgNode {...p} />;
-        if (renderNode.type === "frame") return <FrameNode {...p} />;
-        if (renderNode.type === "lane") return <LaneNode {...p} />;
+        const nodeId = renderNode.id;
+        if (renderNode.type === "sticky") return <Sticky key={nodeId} {...p} />;
+        if (renderNode.type === "task") return <TaskNode key={nodeId} {...p} blockedByDeps={blockedByDepNodeSet.has(nodeId)} />;
+        if (renderNode.type === "milestone") return <MilestoneNode key={nodeId} {...p} milestoneStats={milestoneStatsByNode[nodeId] || { done: 0, total: 0 }} />;
+        if (renderNode.type === "decision") return <DecisionNode key={nodeId} {...p} />;
+        if (renderNode.type === "transform") return <TransformNode key={nodeId} {...p} />;
+        if (renderNode.type === "chart") return <ChartNode key={nodeId} {...p} />;
+        if (isKpiNodeLike(renderNode)) return <KpiNode key={nodeId} {...p} />;
+        if (renderNode.type === "shape") return <Shape key={nodeId} {...p} />;
+        if (renderNode.type === "text") return <TxtNode key={nodeId} {...p} />;
+        if (renderNode.type === "image") return <ImgNode key={nodeId} {...p} />;
+        if (renderNode.type === "frame") return <FrameNode key={nodeId} {...p} />;
+        if (renderNode.type === "lane") return <LaneNode key={nodeId} {...p} />;
         if (renderNode.type === "sheet")
           return (
             <SpreadsheetNode
+              key={nodeId}
               {...p}
               spreadsheetEngine={spreadsheetEngine}
               formulaSession={sheetFormulaSession}
               formulaPick={sheetFormulaPick}
               onFormulaSessionChange={onSheetFormulaSessionChange}
               onFormulaReferencePick={onSheetFormulaReferencePick}
-              onConsumeFormulaPick={onConsumeSheetFormulaPick}
-              formulaHighlight={formulaHighlightSheetSet.has(renderNode.id)}
-              formulaSource={sheetFormulaSession?.sourceSheetId === renderNode.id}
-              anomalyMap={sheetAiAnomalyMapBySheet?.[renderNode.id] || null}
+              onConsumeFormulaPick={onConsumeFormulaPick}
+              formulaHighlight={formulaHighlightSheetSet.has(nodeId)}
+              formulaSource={sheetFormulaSession?.sourceSheetId === nodeId}
+              anomalyMap={sheetAiAnomalyMapBySheet?.[nodeId] || null}
             />
           );
-        if (renderNode.type === "deck") return <DeckNode {...p} />;
+        if (renderNode.type === "deck") return <DeckNode key={nodeId} {...p} />;
+        if (renderNode.type === "note") return <NoteNode key={nodeId} {...p} T={T} nodes={nodes} RH={p.RH} />;
         return null;
       })}
     </div>

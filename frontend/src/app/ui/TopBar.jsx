@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TopBarView({
   onTpl,
@@ -290,7 +291,10 @@ export default function TopBarView({
   };
 
   return (
-    <header
+    <motion.header
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
       style={{
         height: barHeight,
         background: T.bg1,
@@ -302,10 +306,14 @@ export default function TopBarView({
         flexShrink: 0,
         zIndex: 100,
         gap: 10,
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>
-        <button
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, overflow: "hidden" }}>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={onBoards}
           title="All boards"
           style={{
@@ -313,14 +321,15 @@ export default function TopBarView({
             border: `1px solid ${T.b1}`,
             color: T.t1,
             minHeight: 36,
-            padding: "0 12px",
-            borderRadius: 9,
+            padding: "0 14px",
+            borderRadius: 10,
             fontSize: 12,
             cursor: "pointer",
             fontFamily: "'JetBrains Mono',monospace",
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 8,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = T.yDim;
@@ -331,11 +340,19 @@ export default function TopBarView({
             e.currentTarget.style.color = T.t1;
           }}
         >
-          {"<"} Boards
-        </button>
-        <span style={{ fontSize: 20, color: T.y, animation: "float 3s ease-in-out infinite", display: "inline-block" }}>B</span>
+          <span style={{ fontSize: 14 }}>←</span> Boards
+        </motion.button>
+        <motion.span
+          animate={{ rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          style={{ fontSize: 24, color: T.y, display: "inline-block", fontWeight: 900, textShadow: "0 0 10px rgba(250,204,21,0.3)" }}
+        >
+          B
+        </motion.span>
         {editName ? (
-          <input
+          <motion.input
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             ref={nameRef}
             value={nameVal}
             onChange={(e) => setNameVal(e.target.value)}
@@ -351,149 +368,176 @@ export default function TopBarView({
               background: T.bg3,
               border: `1px solid ${T.yDim}`,
               color: T.t0,
-              borderRadius: 6,
-              padding: "6px 12px",
+              borderRadius: 8,
+              padding: "6px 14px",
               fontSize: 15,
               fontFamily: "'DM Sans',sans-serif",
               outline: "none",
-              width: isMobile ? 156 : 230,
+              width: isMobile ? 156 : 240,
+              boxShadow: `0 0 0 2px ${T.y}22`,
             }}
           />
         ) : (
-          <span
+          <motion.span
+            whileHover={{ backgroundColor: T.bg3 }}
             onDoubleClick={() => setEditName(true)}
             title="Double-click to rename"
             style={{
               fontWeight: 700,
-              fontSize: 16,
+              fontSize: 18,
               color: T.t0,
               letterSpacing: "-.02em",
               fontFamily: "'Instrument Serif',serif",
               cursor: "text",
               userSelect: "none",
-              padding: "2px 4px",
-              borderRadius: 4,
-              maxWidth: isMobile ? 140 : 280,
+              padding: "4px 8px",
+              borderRadius: 6,
+              maxWidth: isMobile ? 140 : 320,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              transition: "background-color 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = T.bg3)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             {nameVal}
-          </span>
+          </motion.span>
         )}
-        <span style={{ width: 1, height: 16, background: T.b0, margin: "0 2px" }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: isSaved ? T.green : T.y, animation: isSaved ? "none" : "pulse 1.5s infinite" }} />
-          <span style={{ fontSize: 9.5, color: T.t2, fontFamily: "'JetBrains Mono',monospace" }}>{isSaved ? "saved" : "saving…"}</span>
+        <span style={{ width: 1, height: 20, background: T.b0, margin: "0 4px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <motion.div
+            animate={{ scale: isSaved ? 1 : [1, 1.2, 1] }}
+            transition={{ duration: 1, repeat: isSaved ? 0 : Infinity }}
+            style={{ width: 6, height: 6, borderRadius: "50%", background: isSaved ? T.green : T.y }}
+          />
+          <span style={{ fontSize: 10, color: T.t2, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.05em" }}>
+            {isSaved ? "SAVED" : "SAVING…"}
+          </span>
         </div>
-        {!isMobile && <span style={{ fontSize: 9.5, color: T.t3, fontFamily: "'JetBrains Mono',monospace" }}>{visibleNodes.length}n·{arrows.length}c{sel.length ? `·${sel.length}sel` : ""}</span>}
         {!isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4, background: T.bg3, border: `1px solid ${T.b1}`, borderRadius: 99, padding: "4px 10px" }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: ME.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: T.t1, fontFamily: "'JetBrains Mono',monospace" }}>{ME.name}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 8 }}>
+            <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono',monospace", opacity: 0.7 }}>
+              {visibleNodes.length} nodes · {arrows.length} connections
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.bg3, border: `1px solid ${T.b1}`, borderRadius: 20, padding: "3px 12px", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: ME.color, flexShrink: 0, boxShadow: `0 0 8px ${ME.color}66` }} />
+              <span style={{ fontSize: 11, color: T.t1, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{ME.name}</span>
+            </div>
           </div>
         )}
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {isMobile ? (
-          <>
-            <button onClick={() => d({ type: "UNDO" })} disabled={!hist.length} title="Undo" style={{ ...btnShell, minHeight: 34, padding: "0 10px", fontSize: 11, color: hist.length ? T.t1 : T.t3, cursor: hist.length ? "pointer" : "not-allowed", flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={() => d({ type: "UNDO" })} disabled={!hist.length} style={{ ...btnShell, minHeight: 34, padding: "0 12px" }}>
               Undo
             </button>
-            <button onClick={() => d({ type: "REDO" })} disabled={!fut.length} title="Redo" style={{ ...btnShell, minHeight: 34, padding: "0 10px", fontSize: 11, color: fut.length ? T.t1 : T.t3, cursor: fut.length ? "pointer" : "not-allowed", flexShrink: 0 }}>
-              Redo
-            </button>
-            <button onClick={onToggleTools} style={{ ...btnShell, minHeight: 34, padding: "0 10px", fontSize: 11, background: toolsOpen ? T.yBg : T.bg3, border: `1px solid ${toolsOpen ? T.yDim : T.b1}`, color: toolsOpen ? T.y : T.t1, flexShrink: 0 }}>
+            <button onClick={onToggleTools} style={{ ...btnShell, minHeight: 34, background: toolsOpen ? T.yBg : T.bg3, border: `1px solid ${toolsOpen ? T.yDim : T.b1}`, color: toolsOpen ? T.y : T.t1 }}>
               Insert
             </button>
-            <button onClick={onToggleRight} style={{ ...btnShell, minHeight: 34, padding: "0 10px", fontSize: 11, background: rightOpen ? T.yBg : T.bg3, border: `1px solid ${rightOpen ? T.yDim : T.b1}`, color: rightOpen ? T.y : T.t1, flexShrink: 0 }}>
+            <button onClick={onToggleRight} style={{ ...btnShell, minHeight: 34, background: rightOpen ? T.yBg : T.bg3, border: `1px solid ${rightOpen ? T.yDim : T.b1}`, color: rightOpen ? T.y : T.t1 }}>
               Panel
             </button>
-            <button onClick={onToggleMore} style={{ ...btnShell, minHeight: 34, padding: "0 10px", fontSize: 11, background: moreOpen ? T.yBg : T.bg3, border: `1px solid ${moreOpen ? T.yDim : T.b1}`, color: moreOpen ? T.y : T.t1, flexShrink: 0 }}>
-              More
-            </button>
-          </>
+          </div>
         ) : (
-          <>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div style={clusterShell}>
-              <button onClick={() => d({ type: "UNDO" })} disabled={!hist.length} title="Undo (Ctrl+Z)" style={{ ...btnShell, color: hist.length ? T.t1 : T.t3, cursor: hist.length ? "pointer" : "not-allowed" }}>
+              <motion.button whileHover={{ y: -1 }} whileTap={{ y: 0 }} onClick={() => d({ type: "UNDO" })} disabled={!hist.length} title="Undo (Ctrl+Z)" style={{ ...btnShell, color: hist.length ? T.t1 : T.t3 }}>
                 Undo
-              </button>
-              <button onClick={() => d({ type: "REDO" })} disabled={!fut.length} title="Redo (Ctrl+Y)" style={{ ...btnShell, color: fut.length ? T.t1 : T.t3, cursor: fut.length ? "pointer" : "not-allowed" }}>
+              </motion.button>
+              <motion.button whileHover={{ y: -1 }} whileTap={{ y: 0 }} onClick={() => d({ type: "REDO" })} disabled={!fut.length} title="Redo (Ctrl+Y)" style={{ ...btnShell, color: fut.length ? T.t1 : T.t3 }}>
                 Redo
-              </button>
+              </motion.button>
             </div>
+
             <div style={clusterShell}>
-              <div style={{ display: "flex", alignItems: "center", background: T.bg3, border: `1px solid ${T.b1}`, borderRadius: 9, overflow: "hidden", flexShrink: 0 }}>
-                <button onClick={() => d({ type: "ZOOM", v: (zoom || 1) * 0.9 })} title="Zoom out" style={{ background: "transparent", border: "none", color: T.t1, minHeight: 36, padding: "0 9px", fontSize: 13, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>
-                  -
-                </button>
-                <span style={{ minWidth: 54, textAlign: "center", fontSize: 12, color: T.t2, fontFamily: "'JetBrains Mono',monospace" }}>{zoomPct}%</span>
-                <button onClick={() => d({ type: "ZOOM", v: (zoom || 1) * 1.1 })} title="Zoom in" style={{ background: "transparent", border: "none", color: T.t1, minHeight: 36, padding: "0 9px", fontSize: 13, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>
-                  +
-                </button>
+              <div style={{ display: "flex", alignItems: "center", background: T.bg3, border: `1px solid ${T.b1}`, borderRadius: 9, overflow: "hidden" }}>
+                <button onClick={() => d({ type: "ZOOM", v: (zoom || 1) * 0.9 })} style={{ background: "transparent", border: "none", color: T.t1, minHeight: 36, padding: "0 10px", cursor: "pointer" }}>-</button>
+                <span style={{ minWidth: 50, textAlign: "center", fontSize: 11, color: T.t2, fontFamily: "'JetBrains Mono',monospace" }}>{zoomPct}%</span>
+                <button onClick={() => d({ type: "ZOOM", v: (zoom || 1) * 1.1 })} style={{ background: "transparent", border: "none", color: T.t1, minHeight: 36, padding: "0 10px", cursor: "pointer" }}>+</button>
               </div>
-              <button onClick={() => d({ type: "ZOOM_FIT", vw: window.innerWidth, vh: window.innerHeight - barHeight })} title="Fit to screen" style={btnShell}>
-                Fit
-              </button>
-              <button onClick={onSearch} title="Ctrl+K" style={{ ...btnShell, display: "flex", alignItems: "center", gap: 6 }}>
-                Search <span style={{ fontSize: 10, color: T.t2 }}>Ctrl+K</span>
-              </button>
-              <button onClick={onTpl} style={btnShell}>
-                Templates
-              </button>
-              <button onClick={onToggleTheme} title="Toggle Light/Dark" style={btnShell}>
-                {themeMode === "dark" ? "Light Mode" : "Dark Mode"}
+              <motion.button whileHover={{ y: -1 }} onClick={onSearch} title="Ctrl+K" style={{ ...btnShell, padding: "0 14px", background: T.bg3 }}>
+                Search <span style={{ opacity: 0.5, fontSize: 10, marginLeft: 6 }}>⌘K</span>
+              </motion.button>
+              <button onClick={onTpl} style={btnShell}>Templates</button>
+              <button onClick={onToggleTheme} style={btnShell}>
+                {themeMode === "dark" ? "Light" : "Dark"}
               </button>
               {frames.length > 0 && (
-                <button onClick={onPresent} style={{ ...btnShell, background: T.yBg, border: `1px solid ${T.yDim}`, color: T.y, fontWeight: 700 }}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={onPresent}
+                  style={{ ...btnShell, background: T.yBg, borderColor: T.yDim, color: T.y, fontWeight: 700, padding: "0 16px" }}
+                >
                   Present
-                </button>
+                </motion.button>
               )}
             </div>
+
             <div style={clusterShell}>
-              <button onClick={copyShareLink} title="Copy board link" style={btnShell}>
-                Share
-              </button>
-              <button onClick={onToggleRight} title="Open inspector and collaborators" style={{ ...btnShell, background: rightOpen ? T.yBg : T.bg3, border: `1px solid ${rightOpen ? T.yDim : T.b1}`, color: rightOpen ? T.y : T.t1 }}>
+              <button onClick={copyShareLink} style={btnShell}>Share</button>
+              <button
+                onClick={onToggleRight}
+                style={{ ...btnShell, background: rightOpen ? T.yBg : T.bg3, borderColor: rightOpen ? T.yDim : T.b1, color: rightOpen ? T.y : T.t1 }}
+              >
                 Inspector
-              </button>
-              <button onClick={onToggleMinimap} title="Toggle minimap" style={{ ...btnShell, background: showMinimap ? T.yBg : T.bg3, border: `1px solid ${showMinimap ? T.yDim : T.b1}`, color: showMinimap ? T.y : T.t1 }}>
-                Minimap
-              </button>
-              <button onClick={onToggleTimeline} title="Toggle execution timeline" style={{ ...btnShell, background: showTimeline ? T.yBg : T.bg3, border: `1px solid ${showTimeline ? T.yDim : T.b1}`, color: showTimeline ? T.y : T.t1 }}>
-                Timeline
               </button>
               <div ref={menuRef} style={{ position: "relative" }}>
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
-                  title="Import/Export menu"
-                  style={{ ...btnShell, background: menuOpen ? T.yBg : T.bg3, border: `1px solid ${menuOpen ? T.yDim : T.b1}`, color: menuOpen ? T.y : T.t1 }}
+                  style={{ ...btnShell, background: menuOpen ? T.yBg : T.bg3, borderColor: menuOpen ? T.yDim : T.b1, color: menuOpen ? T.y : T.t1 }}
                 >
                   Export
                 </button>
-                {menuOpen && (
-                  <div className="pop" style={{ position: "absolute", right: 0, top: 42, background: T.bg2, border: `1px solid ${T.b2}`, borderRadius: 10, padding: 6, minWidth: 196, boxShadow: "0 10px 30px rgba(0,0,0,.55)", zIndex: 450 }}>
-                    {[["Import JSON", () => impRef.current?.click()], ["Share link", copyShareLink], ["Toggle Timeline", onToggleTimeline], ["divider"], ["Export SVG", exportSVG], ["Export PNG", exportPNG], ["Export JSON", exportJSON]].map((entry, idx) =>
-                      entry[0] === "divider" ? (
-                        <div key={`mdiv-${idx}`} style={{ height: 1, background: T.b0, margin: "5px 2px" }} />
-                      ) : (
-                        <button key={entry[0]} onClick={() => runMenuAction(entry[1])} style={{ width: "100%", display: "block", textAlign: "left", background: "transparent", border: "none", color: T.t0, padding: "8px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }} onMouseEnter={(e) => (e.currentTarget.style.background = T.bg3)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                          {entry[0]}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                )}
+                <AnimatePresence>
+                  {menuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      style={{
+                        position: "absolute", right: 0, top: 44,
+                        background: T.bg2, border: `1px solid ${T.b2}`,
+                        borderRadius: 12, padding: 6, minWidth: 200,
+                        boxShadow: "0 10px 40px rgba(0,0,0,0.4)", zIndex: 450
+                      }}
+                    >
+                      {[
+                        ["Import JSON", () => impRef.current?.click()],
+                        ["Share link", copyShareLink],
+                        ["divider"],
+                        ["Export SVG", exportSVG],
+                        ["Export PNG", exportPNG],
+                        ["Export JSON", exportJSON]
+                      ].map((entry, idx) =>
+                        entry[0] === "divider" ? (
+                          <div key={`mdiv-${idx}`} style={{ height: 1, background: T.b0, margin: "6px 4px" }} />
+                        ) : (
+                          <button
+                            key={entry[0]}
+                            onClick={() => runMenuAction(entry[1])}
+                            style={{
+                              width: "100%", textAlign: "left", background: "transparent",
+                              border: "none", color: T.t0, padding: "10px 12px",
+                              borderRadius: 8, fontSize: 13, cursor: "pointer",
+                              fontFamily: "'DM Sans',sans-serif"
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = T.bg3)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            {entry[0]}
+                          </button>
+                        )
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
-          </>
+          </div>
         )}
         <input ref={impRef} type="file" accept=".json" onChange={importJSON} style={{ display: "none" }} />
       </div>
-    </header>
+    </motion.header>
   );
 }

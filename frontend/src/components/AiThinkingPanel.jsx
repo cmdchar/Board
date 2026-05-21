@@ -31,6 +31,9 @@ export default function AiThinkingPanel({ T, thinking }) {
     setReplaceOnInsert,
     selectedCount,
     smartSuggestions,
+    semanticClusters,
+    semanticLoading,
+    findSemanticClusters,
     examplePrompts,
     runBoardGeneration,
     runFlowGeneration,
@@ -158,6 +161,49 @@ export default function AiThinkingPanel({ T, thinking }) {
         ))}
       </div>
     </div>}
+
+    <div style={{ borderTop: `1px dashed ${T.b0}`, paddingTop: 10, marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, color: T.y, fontFamily: "'JetBrains Mono',monospace", letterSpacing: ".05em", fontWeight: 700 }}>SEMANTIC CLUSTERS</div>
+        <button
+          onClick={findSemanticClusters}
+          disabled={semanticLoading}
+          style={{ background: "transparent", border: "none", color: T.t2, fontSize: 9, cursor: "pointer", textDecoration: "underline" }}
+        >
+          {semanticLoading ? "RESCANNING..." : "SCAN BOARD"}
+        </button>
+      </div>
+
+      {semanticClusters.length === 0 && !semanticLoading && (
+        <div style={{ fontSize: 10, color: T.t3, fontStyle: "italic", textAlign: "center", padding: "10px 0" }}>
+          No conceptual clusters found yet.
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 6 }}>
+        {semanticClusters.map(cluster => (
+          <button
+            key={cluster.id}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('boardai:focus-note', { detail: { id: cluster.members[0] } }));
+            }}
+            style={{
+              textAlign: "left",
+              padding: "8px 10px",
+              background: T.bg2,
+              border: `1px solid ${T.b1}`,
+              borderRadius: 8,
+              cursor: "pointer"
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = T.yDim}
+            onMouseLeave={e => e.currentTarget.style.borderColor = T.b1}
+          >
+            <div style={{ fontSize: 11, color: T.t0, fontWeight: 600, marginBottom: 4 }}>{cluster.label}</div>
+            <div style={{ fontSize: 9, color: T.t2, fontFamily: "'JetBrains Mono',monospace" }}>{cluster.members.length} related concepts</div>
+          </button>
+        ))}
+      </div>
+    </div>
 
     {loading && <div style={{ borderRadius: 9, border: `1px solid ${T.yDim}`, background: T.yBg, color: T.y, padding: "8px 10px", fontSize: 11.5 }}>Thinking with board context...</div>}
     {error && <div style={{ borderRadius: 9, border: `1px solid ${T.red}`, background: T.bg3, color: T.red, padding: "8px 10px", fontSize: 11.5 }}>{error}</div>}

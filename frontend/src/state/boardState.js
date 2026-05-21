@@ -114,6 +114,21 @@ export function createBoardState({ T, SC, CANVAS_THEMES, uid }) {
       deckInputTarget:opts.deckInputTarget==="title"?"title":"body",
     };
   }
+
+  function makeNoteNode(x,y,opts={}){
+    return{
+      id:uid(),
+      type:"note",
+      x,
+      y,
+      w:Math.max(300,Number(opts.w)||400),
+      h:Math.max(200,Number(opts.h)||500),
+      text:opts.text||"# New Note\n\nWrite something...",
+      color:T.bg2,
+      textColor:T.t0,
+      borderColor:T.b1,
+    };
+  }
   
   function makeTablePack(x,y,opts={}){
     const cols=Math.max(TABLE_MIN_COLS,Math.min(8,Number(opts.cols)||5));
@@ -436,7 +451,7 @@ export function createBoardState({ T, SC, CANVAS_THEMES, uid }) {
 
   const ADD_TOOLS=new Set([
     "sticky","text","rect","circle","diamond","triangle","hexagon","parallelogram","cloud","cylinder",
-    "laneH","laneV","table","sheet","deck","task","milestone","decision","transform","frame","comment","vote","arrow",
+    "laneH","laneV","table","sheet","deck","note","task","milestone","decision","transform","frame","comment","vote","arrow",
   ]);
 
   function reducer(s,a){
@@ -884,6 +899,7 @@ export function createBoardState({ T, SC, CANVAS_THEMES, uid }) {
     makeShapeNode,
     makeSheetNode,
     makeDeckNode,
+    makeNoteNode,
     makeTablePack,
     getTableInfo,
     getTableColumnStart,

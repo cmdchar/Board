@@ -46,9 +46,11 @@ export default function PropsPanel({
     </div>;
   }
 
-  return <div className="pop" style={{ borderBottom: `1px solid ${T.b0}`, padding: "12px 12px 4px", background: T.bg1, flexShrink: 0 }}>
-    <div style={{ fontSize: 9.5, fontWeight: 600, color: T.y, marginBottom: 12, fontFamily: "'JetBrains Mono',monospace", display: "flex", alignItems: "center", gap: 5 }}>◈ PROPS {sel.length > 1 ? `(${sel.length})` : ""}</div>
-    <Sec label="Background"><div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}><CGrid colors={PBG} cur={f.color} onChange={c => u({ color: c })} /><input type="color" value={f.color || "#000000"} onChange={e => u({ color: e.target.value })} title="Custom color" /></div></Sec>
+  return <div className="pop" style={{ borderBottom: `1px solid ${T.b0}`, padding: "16px 18px 8px", background: `${T.bg1}55`, flexShrink: 0 }}>
+    <div style={{ fontSize: 9, fontWeight: 800, color: T.y, marginBottom: 16, fontFamily: "'JetBrains Mono',monospace", display: "flex", alignItems: "center", gap: 6, letterSpacing: ".1em" }}>
+      <span>◈</span> PROPERTIES {sel.length > 1 ? `(${sel.length} SELECTED)` : ""}
+    </div>
+    <Sec label="Background"><div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}><CGrid colors={PBG} cur={f.color} onChange={c => u({ color: c })} /><input type="color" value={f.color || "#000000"} onChange={e => u({ color: e.target.value })} title="Custom color" /></div></Sec>
     <Sec label="Text"><div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}><CGrid colors={PTXT} cur={f.textColor} onChange={c => u({ textColor: c })} /><input type="color" value={f.textColor || "#ffffff"} onChange={e => u({ textColor: e.target.value })} title="Custom color" /></div></Sec>
     {f.type === "shape" && <Sec label="Border"><CGrid colors={PBRD} cur={f.borderColor} onChange={c => u({ borderColor: c })} /></Sec>}
     <Sec label="Font"><div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>{PSZ.map(sz => <button key={sz} onClick={() => u({ fontSize: sz })} style={{ background: f.fontSize === sz ? T.yBg : T.bg3, border: `1px solid ${f.fontSize === sz ? T.yDim : T.b0}`, color: f.fontSize === sz ? T.y : T.t1, borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer", fontFamily: "'JetBrains Mono',monospace" }}>{sz}</button>)}</div></Sec>

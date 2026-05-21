@@ -252,10 +252,10 @@ export default function Dashboard({
   return <div style={{ height: "100vh", background: T.bg0, display: "flex", flexDirection: "column", fontFamily: "'DM Sans',sans-serif", overflow: "hidden" }}>
     <style>{CSS}</style>
     {/* Header */}
-    <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", padding: isMobile ? "12px 14px" : "16px 32px", borderBottom: `1px solid ${T.b0}`, flexShrink: 0, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 22, color: T.y, animation: "float 3s ease-in-out infinite", display: "inline-block" }}>B</span>
-        <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: 20, color: T.t0, fontWeight: 800, letterSpacing: "-.03em" }}>Board<span style={{ color: T.y }}>AI</span></span>
+    <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", justifyContent: "space-between", padding: isMobile ? "12px 20px" : "20px 44px", borderBottom: `1px solid ${T.b0}`, flexShrink: 0, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, background: `${T.bg0}dd`, backdropFilter: "blur(20px)", zIndex: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 26, color: T.y, fontWeight: 900, textShadow: `0 0 12px ${T.y}44` }}>B</span>
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: 24, color: T.t0, fontWeight: 800, letterSpacing: "-.03em" }}>Board<span style={{ color: T.y }}>AI</span></span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: isMobile ? "wrap" : "nowrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, background: T.bg2, border: `1px solid ${T.b1}`, borderRadius: 99, padding: "5px 12px" }}>
@@ -277,11 +277,11 @@ export default function Dashboard({
     <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "20px 12px" : "40px 32px" }}>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         {/* Welcome */}
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: isMobile ? 28 : 34, color: T.t0, fontWeight: 800, letterSpacing: "-.03em", margin: "0 0 6px" }}>
-            Welcome back, <span style={{ color: T.y }}>{user?.name?.split(" ")[0] || "there"}</span> ?
+        <div style={{ marginBottom: 44 }}>
+          <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: isMobile ? 32 : 48, color: T.t0, fontWeight: 800, letterSpacing: "-.03em", margin: "0 0 8px", lineHeight: 1 }}>
+            Welcome back, <span style={{ color: T.y, fontStyle: "italic" }}>{user?.name?.split(" ")[0] || "there"}</span>
           </h1>
-          <p style={{ color: T.t1, fontSize: 13, margin: 0 }}>Your collaborative whiteboards - pick one or create a new one.</p>
+          <p style={{ color: T.t1, fontSize: 15, margin: 0, opacity: 0.8 }}>Studio Edition 2026 · Manage your knowledge base and execution boards.</p>
         </div>
 
         {/* Execution Health */}

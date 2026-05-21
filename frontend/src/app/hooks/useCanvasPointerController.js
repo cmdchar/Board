@@ -34,6 +34,7 @@ export function useCanvasPointerController({
   SHAPE_DEFAULTS,
   makeShapeNode,
   makeSheetNode,
+  makeNoteNode,
   makeDeckNode,
   mobileStayInAdd,
   nextModeAfterAdd,
@@ -221,6 +222,7 @@ export function useCanvasPointerController({
     else if (tool === "laneH") { dispatch({ type: "ADD", node: { id: uid(), type: "lane", orientation: "h", x: sx, y: sy, w: 920, h: 180, text: "Swimlane", color: T.bg3, textColor: T.t0, borderColor: T.b1 } }); added = true; }
     else if (tool === "laneV") { dispatch({ type: "ADD", node: { id: uid(), type: "lane", orientation: "v", x: sx, y: sy, w: 220, h: 640, text: "Swimlane", color: T.bg3, textColor: T.t0, borderColor: T.b1 } }); added = true; }
     else if (tool === "table" || tool === "sheet") { dispatch({ type: "ADD", node: makeSheetNode(sx, sy) }); added = true; }
+    else if (tool === "note") { dispatch({ type: "ADD", node: makeNoteNode(sx, sy) }); added = true; }
     else if (tool === "deck") { dispatch({ type: "ADD", node: makeDeckNode(sx, sy) }); added = true; }
     else if (tool === "frame") { dispatch({ type: "ADD", node: { id: uid(), type: "frame", x: sx, y: sy, w: 400, h: 300, text: "Frame", color: "transparent", borderColor: T.b1 } }); added = true; }
     if (added && isMobile && !mobileStayInAdd) {

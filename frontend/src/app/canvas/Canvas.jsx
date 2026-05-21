@@ -11,12 +11,13 @@ export default function Canvas({presentMode,presentFrame,isMobile=false,mobileSt
     normalizeConnectorDefaultStyle,normalizeConnectorJumpStyle,normalizeConnectorRouting,normalizeConnectorStyle,reverseConnector,
     applyJumpsToPath,buildObstacleIndex,buildObstacleRects,clampCanvasPoint,connectorMidpoint,defaultConnectorPath,queryObstacleIndex,routeOrthoAStar,segmentIntersectsRect,segmentsToIntersections,
     appendFormulaReference,buildSheetReferenceToken,createSpreadsheetEngine,sheetCellKey,sheetColLabel,
-    createTransformNode,isDataConnector,isDataNodeType,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,collectDependency,SHAPE_DEFAULTS,makeShapeNode,makeSheetNode,makeDeckNode,
+    createTransformNode,isDataConnector,isDataNodeType,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,collectDependency,SHAPE_DEFAULTS,makeShapeNode,makeSheetNode,makeNoteNode,makeDeckNode,
     useCanvasUiState,useConnectorStyleController,useSheetFormulaBridge,useCanvasTransientUiHandlers,useConnectorSelectionSync,useCanvasImageIo,useCanvasWheelPanZoom,useCanvasLaserTrail,useTouchPointerCapture,useCanvasTouchHelpers,useCanvasMouseMoveRaf,useCanvasTouchMoveRaf,useTouchGestureUndoRedo,useTouchRadialMenuEnd,useTouchLongPressEnd,useTouchDoubleTapEnd,usePortConnectController,useConnectorContextMenu,useCanvasContextCommands,useCanvasPointerController,useCanvasContextMenuController,useCanvasContextImageUpload,useCanvasDoubleClickInsert,useCanvasNodeTransformStart,useCanvasNodeTouchStart,useCanvasTouchStartTarget,useCanvasTouchMoveNonPinch,useCanvasTouchEndHandler,useCanvasTouchStartTwoFinger,useCanvasTouchMovePinch,useCanvasTouchStartHandler,useCanvasTouchMoveHandler,
     ContextMenu,MobileBottomSheet,MobileRadialMenu,ConnectorRenderer,NodeRenderer,SelectionOverlay,GuidesOverlay,RemoteCursorsView,CanvasHud,ConnectorStylePanels,
     normalizeColorInputValue,getThemeColorHex,normExecStatus,normExecPriority,normExecDueDate,parseExecTags,normalizePresenceState,normalizeDependencyType,inferDependencyType,dependencyTypeLabel,getConnectorDependencyType,composeTaskNodeText,composeMilestoneNodeText,composeDecisionNodeText,isKpiNodeLike,formatNumber,chartSeriesPath,
-    Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode,ArrowLabel,CommentDot,RH,RotH,
+    Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode,NoteNode,ArrowLabel,CommentDot,RH,RotH,
     socket,
+    nodes: allNodes,
   }=canvasDeps;
   const{nodes,arrows,sel,tool,zoom,px,py,arrowFrom,comments,drawings,votes,snapGrid,depMode,bgColor,autoReturnToSelect}=s;
   const {
@@ -116,6 +117,32 @@ export default function Canvas({presentMode,presentFrame,isMobile=false,mobileSt
     selectedConnectorIds,
     setSelectedConnectorIds,
   });
+  useEffect(() => {
+    const onFocusNote = (e) => {
+      const id = String(e?.detail?.id || "").trim();
+      if (!id) return;
+      // Try ID first, then title
+      let node = nodes.find(n => n.id === id);
+      if (!node) {
+        node = nodes.find(n => {
+          if (n.type !== 'note') return false;
+          const title = n.text.split('\n')[0].replace(/^#+\s*/, '').trim();
+          return title.toLowerCase() === id.toLowerCase();
+        });
+      }
+      if (node) {
+        d({ type: "SEL", v: [node.id] });
+        const cx = (node.x || 0) + (node.w || 300) / 2;
+        const cy = (node.y || 0) + (node.h || 400) / 2;
+        const tx = window.innerWidth * 0.5 - cx * zoom;
+        const ty = window.innerHeight * 0.42 - cy * zoom;
+        d({ type: "PAN", x: tx, y: ty });
+      }
+    };
+    window.addEventListener("boardai:focus-note", onFocusNote);
+    return () => window.removeEventListener("boardai:focus-note", onFocusNote);
+  }, [nodes, zoom, d]);
+
   useEffect(()=>{
     if(!mobileInlineEdit?.nodeId)return;
     const exists=nodes.some(n=>n.id===mobileInlineEdit.nodeId);
@@ -725,6 +752,7 @@ export default function Canvas({presentMode,presentFrame,isMobile=false,mobileSt
     SHAPE_DEFAULTS,
     makeShapeNode,
     makeSheetNode,
+    makeNoteNode,
     makeDeckNode,
     mobileStayInAdd,
     nextModeAfterAdd,
@@ -1021,7 +1049,9 @@ export default function Canvas({presentMode,presentFrame,isMobile=false,mobileSt
         onConsumeSheetFormulaPick={onConsumeSheetFormulaPick}
         formulaHighlightSheetSet={formulaHighlightSheetSet}
         sheetAiAnomalyMapBySheet={sheetAiAnomalyMapBySheet}
-        components={{Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode}}
+        components={{Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode,NoteNode}}
+        T={T}
+        nodes={allNodes || nodes}
       />
 
       {/* CONNECTOR PORTS */}
