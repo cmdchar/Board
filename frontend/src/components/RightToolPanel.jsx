@@ -1,4 +1,5 @@
 ﻿import { useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { TOOL_PANEL_TOKENS } from "../styles/tokens";
 
 const PANEL_COLORS = TOOL_PANEL_TOKENS;
@@ -41,6 +42,11 @@ function ToolIcon({ name, size = 22, stroke = 1.8 }) {
         <>
           <rect x="3" y="4" width="18" height="16" rx="2" {...common} />
           <path d="M3 9h18M3 14h18M9 4v16M15 4v16" {...common} />
+        </>
+      )}
+      {name === "note" && (
+        <>
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" {...common} />
         </>
       )}
       {name === "deck" && (
@@ -253,7 +259,9 @@ function IconAction({ icon, description, active = false, onClick }) {
 
 function RailButton({ icon, label, active = false, onClick }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05, x: 2 }}
+      whileTap={{ scale: 0.95 }}
       type="button"
       title={label}
       aria-label={label}
@@ -261,7 +269,7 @@ function RailButton({ icon, label, active = false, onClick }) {
       style={{
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: 14,
         border: `1px solid ${active ? PANEL_COLORS.primary : PANEL_COLORS.border}`,
         background: active ? PANEL_COLORS.primarySoft : PANEL_COLORS.surface,
         color: active ? PANEL_COLORS.primary : PANEL_COLORS.text,
@@ -269,21 +277,25 @@ function RailButton({ icon, label, active = false, onClick }) {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        transition: "all var(--ui-motion-fast,120ms) var(--ui-ease-out,cubic-bezier(0.22,1,0.36,1))",
-      }}
-      onMouseEnter={e => {
-        if (active) return;
-        e.currentTarget.style.background = PANEL_COLORS.hover;
-        e.currentTarget.style.borderColor = PANEL_COLORS.borderStrong;
-      }}
-      onMouseLeave={e => {
-        if (active) return;
-        e.currentTarget.style.background = PANEL_COLORS.surface;
-        e.currentTarget.style.borderColor = PANEL_COLORS.border;
+        boxShadow: active ? `0 0 15px ${PANEL_COLORS.primary}33` : "none",
+        transition: "background 0.2s, border-color 0.2s",
       }}
     >
-      <ToolIcon name={icon} size={22} />
-    </button>
+      <ToolIcon name={icon} size={22} stroke={active ? 2.2 : 1.8} />
+      {active && (
+        <motion.div
+          layoutId="active-pill"
+          style={{
+            position: "absolute",
+            left: -10,
+            width: 4,
+            height: 20,
+            background: PANEL_COLORS.primary,
+            borderRadius: 2,
+          }}
+        />
+      )}
+    </motion.button>
   );
 }
 
@@ -456,7 +468,7 @@ export default function RightToolPanel({
         position: "relative",
         width: "100%",
         height: "100%",
-        background: `linear-gradient(160deg, ${PANEL_COLORS.surface}, ${PANEL_COLORS.surface2})`,
+        background: PANEL_COLORS.surface,
         border: "none",
         borderRadius: 0,
         boxShadow: "none",
@@ -471,12 +483,12 @@ export default function RightToolPanel({
         ...(side === "left" ? { left: leftInset } : { right: rightInset }),
         bottom: 14,
         width: isMobile ? "min(92vw,340px)" : 324,
-        background: `linear-gradient(160deg, ${PANEL_COLORS.surface}, ${PANEL_COLORS.surface2})`,
+        background: `${PANEL_COLORS.surface}dd`,
         border: `1px solid ${PANEL_COLORS.border}`,
-        borderRadius: 14,
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        boxShadow: "0 20px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05)",
+        borderRadius: 20,
+        backdropFilter: "blur(32px)",
+        WebkitBackdropFilter: "blur(32px)",
+        boxShadow: "0 32px 64px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05)",
         overflow: "hidden",
         zIndex: 240,
         display: "flex",
@@ -499,44 +511,48 @@ export default function RightToolPanel({
           }}
           style={{ display: "none" }}
         />
-        <aside
-          className="slide"
+        <motion.aside
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
           onClick={e => e.stopPropagation()}
           style={{
             position: "absolute",
             top: topOffset,
             left: leftInset,
             bottom: 14,
-            width: 70,
-            borderRadius: 16,
+            width: 68,
+            borderRadius: 24,
             border: `1px solid ${PANEL_COLORS.border}`,
-            background: `linear-gradient(180deg, ${PANEL_COLORS.surface2}, ${PANEL_COLORS.surface})`,
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            boxShadow: "0 20px 46px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05)",
+            background: `${PANEL_COLORS.surface}dd`,
+            backdropFilter: "blur(32px)",
+            WebkitBackdropFilter: "blur(32px)",
+            boxShadow: "0 24px 48px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05)",
             zIndex: 240,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            padding: "12px 10px",
-            gap: 8,
+            padding: "18px 0",
+            gap: 12,
           }}
         >
           <RailButton icon="select" label="Select tool" active={activeSet.has("select")} onClick={() => activateTool("select")} />
           <RailButton icon="pan" label="Hand / Pan tool" active={activeSet.has("pan")} onClick={() => activateTool("pan")} />
+          <div style={{ width: 40, height: 1, background: PANEL_COLORS.border, opacity: 0.5, margin: "2px 0" }} />
           <RailButton icon="arrow" label="Connector tool" active={activeSet.has("arrow")} onClick={() => activateTool("arrow")} />
           <RailButton icon="text" label="Text" active={activeSet.has("text")} onClick={() => activateTool("text")} />
           <RailButton icon="sticky" label="Sticky" active={activeSet.has("sticky")} onClick={() => activateTool("sticky")} />
           <RailButton icon="shapes" label="Shape / Node" active={activeSet.has("shapes")} onClick={() => activateTool("rect")} />
           <RailButton icon="frame" label="Container" active={activeSet.has("frame")} onClick={() => activateTool("frame")} />
           <RailButton icon="image" label="Image" onClick={() => imageRef.current?.click()} />
+          <RailButton icon="note" label="Add Note (markdown)" active={tool === "note"} onClick={() => activateTool("note")} />
           <RailButton icon="sheet" label="Spreadsheet" active={activeSet.has("sheet")} onClick={() => activateTool("sheet")} />
           <RailButton icon="deck" label="Chart" onClick={addQuickChart} />
-          <div style={{ width: 44, height: 1, background: PANEL_COLORS.border, margin: "4px 0" }} />
+          <div style={{ width: 40, height: 1, background: PANEL_COLORS.border, opacity: 0.5, margin: "auto 0 2px" }} />
           <RailButton icon="template" label="Templates" onClick={onOpenTemplates} />
           <RailButton icon="undo" label="Undo" onClick={() => d({ type: "UNDO" })} />
           <RailButton icon="redo" label="Redo" onClick={() => d({ type: "REDO" })} />
-        </aside>
+        </motion.aside>
       </>
     );
   }
@@ -662,6 +678,7 @@ export default function RightToolPanel({
             {matches("Decision", "Create decision memory node") && <ToolRow icon="decision" label="Decision" shortcut="1" description="Capture decision, owner, context and outcome" active={tool === "decision"} onClick={() => activateTool("decision")} />}
             {matches("Transform", "Insert data transform node") && <ToolRow icon="transform" label="Transform Node" shortcut="2" description="SUM, AVG, FILTER, GROUP data in pipeline flow" active={tool === "transform"} onClick={() => activateTool("transform")} />}
             {matches("Spreadsheet", "Insert functional spreadsheet with formulas") && <ToolRow icon="sheet" label="Spreadsheet (Excel)" shortcut="N / B" description="Insert spreadsheet container with formula support" active={tool === "sheet" || tool === "table"} onClick={() => activateTool("sheet")} />}
+            {matches("Note", "Insert Obsidian-style markdown note") && <ToolRow icon="note" label="Add Note (markdown)" shortcut="N" description="Insert markdown note with bi-directional links" active={tool === "note"} onClick={() => activateTool("note")} />}
             {matches("Slides", "Insert functional presentation container") && <ToolRow icon="deck" label="Slides (PowerPoint)" shortcut="O" description="Insert slides container and edit decks directly" active={tool === "deck"} onClick={() => activateTool("deck")} />}
             {(matches("Shapes", "Create geometric and flow shapes") || activeShape) && <ToolRow icon="shapes" label="Shapes" shortcut="R / C / D" description="Create geometric and flow shapes" active={Boolean(activeShape)} onClick={() => setOpen(v => ({ ...v, shapes: !v.shapes }))} />}
             {open.shapes && (

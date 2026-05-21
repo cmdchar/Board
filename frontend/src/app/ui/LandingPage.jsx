@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AuthModal({ initTab = "login", onClose, onSuccess, T, useIsMobileHook, api }) {
   const isMobile = useIsMobileHook(720);
@@ -29,8 +30,20 @@ function AuthModal({ initTab = "login", onClose, onSuccess, T, useIsMobileHook, 
 
   const inp = { background: T.bg3, border: `1px solid ${T.b1}`, borderRadius: 8, padding: "9px 12px", color: T.t0, fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: "none", width: "100%" };
 
-  return <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.82)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, backdropFilter: "blur(6px)", padding: isMobile ? 12 : 0 }} onClick={onClose}>
-    <div className="pop" onClick={(e) => e.stopPropagation()} style={{ background: T.bg1, border: `1px solid ${T.b2}`, borderRadius: 20, padding: isMobile ? "20px 16px" : "32px 36px", width: "100%", maxWidth: isMobile ? "100%" : 420, maxHeight: "92vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,.7)" }}>
+  return <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, backdropFilter: "blur(8px)", padding: isMobile ? 12 : 0 }}
+    onClick={onClose}
+  >
+    <motion.div
+      initial={{ scale: 0.9, y: 20, opacity: 0 }}
+      animate={{ scale: 1, y: 0, opacity: 1 }}
+      exit={{ scale: 0.9, y: 20, opacity: 0 }}
+      onClick={(e) => e.stopPropagation()}
+      style={{ background: T.bg1, border: `1px solid ${T.b2}`, borderRadius: 24, padding: isMobile ? "24px 20px" : "40px 44px", width: "100%", maxWidth: isMobile ? "100%" : 440, maxHeight: "92vh", overflowY: "auto", boxShadow: "0 32px 100px rgba(0,0,0,.8)" }}
+    >
       <div style={{ textAlign: "center", marginBottom: 26 }}>
         <div style={{ fontSize: 34, color: T.y, marginBottom: 6, animation: "float 3s ease-in-out infinite", display: "inline-block" }}>B</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontSize: isMobile ? 24 : 28, color: T.t0, fontWeight: 800, letterSpacing: "-.03em", margin: 0 }}>Board<span style={{ color: T.y }}>AI</span></h2>
@@ -49,8 +62,8 @@ function AuthModal({ initTab = "login", onClose, onSuccess, T, useIsMobileHook, 
         {tab === "login" ? "No account? " : "Have an account? "}
         <button onClick={() => { setTab(tab === "login" ? "register" : "login"); setErr(""); }} style={{ background: "none", border: "none", color: T.y, cursor: "pointer", fontSize: 11.5, fontFamily: "inherit", textDecoration: "underline" }}>{tab === "login" ? "Create one" : "Sign in"}</button>
       </div>
-    </div>
-  </div>;
+    </motion.div>
+  </motion.div>;
 }
 
 export default function LandingPage({ onLogin, themeMode = "dark", onToggleTheme, T, CSS, useIsMobileHook, api }) {
@@ -68,38 +81,85 @@ export default function LandingPage({ onLogin, themeMode = "dark", onToggleTheme
     { icon: "FILE", title: "File Upload", desc: "Upload documents and images — AI maps them into visual boards instantly" },
   ];
 
-  return <div style={{ minHeight: "100vh", background: T.bg0, fontFamily: "'DM Sans',sans-serif", overflow: "auto" }}>
+  return <div style={{ minHeight: "100vh", background: T.bg0, fontFamily: "'DM Sans',sans-serif", overflowX: "hidden", overflowY: "auto" }}>
     <style>{CSS}</style>
-    <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "12px 14px" : "18px 44px", borderBottom: `1px solid ${T.b0}`, position: "sticky", top: 0, background: T.bg0, zIndex: 50, backdropFilter: "blur(12px)", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 22, color: T.y, animation: "float 3s ease-in-out infinite", display: "inline-block" }}>B</span>
-        <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: isMobile ? 18 : 21, color: T.t0, fontWeight: 800, letterSpacing: "-.03em" }}>Board<span style={{ color: T.y }}>AI</span></span>
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onToggleTheme} style={{ background: T.bg3, border: `1px solid ${T.b1}`, color: T.t1, padding: isMobile ? "6px 10px" : "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 12 : 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
-          {themeMode === "dark" ? "Light" : "Dark"}
-        </button>
-        <button onClick={() => openAuth("login")} style={{ background: "transparent", border: `1px solid ${T.b1}`, color: T.t1, padding: isMobile ? "6px 10px" : "8px 18px", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 12 : 13, fontFamily: "inherit", transition: "all .15s" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.b2; e.currentTarget.style.color = T.t0; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.b1; e.currentTarget.style.color = T.t1; }}>Sign in</button>
-        <button onClick={() => openAuth("register")} style={{ background: T.yBg, border: `1px solid ${T.yDim}`, color: T.y, padding: isMobile ? "6px 10px" : "8px 20px", borderRadius: 8, cursor: "pointer", fontSize: isMobile ? 12 : 13, fontFamily: "inherit", fontWeight: 600 }}>Get Started</button>
-      </div>
+    <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "12px 14px" : "20px 44px", borderBottom: `1px solid ${T.b0}`, position: "sticky", top: 0, background: `${T.bg0}dd`, zIndex: 50, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", gap: 8 }}>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        style={{ display: "flex", alignItems: "center", gap: 12 }}
+      >
+        <motion.span
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          style={{ fontSize: 24, color: T.y, fontWeight: 900, textShadow: "0 0 10px rgba(250,204,21,0.3)" }}
+        >
+          B
+        </motion.span>
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: isMobile ? 19 : 24, color: T.t0, fontWeight: 800, letterSpacing: "-.03em" }}>Board<span style={{ color: T.y }}>AI</span></span>
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        style={{ display: "flex", gap: 10 }}
+      >
+        {!isMobile && <button onClick={onToggleTheme} style={{ background: T.bg3, border: `1px solid ${T.b1}`, color: T.t1, padding: "8px 14px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
+          {themeMode === "dark" ? "Light Mode" : "Dark Mode"}
+        </button>}
+        <button onClick={() => openAuth("login")} style={{ background: "transparent", border: `1px solid ${T.b1}`, color: T.t1, padding: isMobile ? "8px 14px" : "8px 22px", borderRadius: 10, cursor: "pointer", fontSize: isMobile ? 13 : 14, fontWeight: 500 }}>Sign in</button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => openAuth("register")}
+          style={{ background: T.yBg, border: `2px solid ${T.yDim}`, color: T.y, padding: isMobile ? "8px 14px" : "8px 24px", borderRadius: 10, cursor: "pointer", fontSize: isMobile ? 13 : 14, fontWeight: 700 }}
+        >
+          Get Started
+        </motion.button>
+      </motion.div>
     </header>
 
-    <section style={{ textAlign: "center", padding: isMobile ? "52px 14px 40px" : "88px 20px 64px", maxWidth: 860, margin: "0 auto" }}>
-      <div style={{ display: "inline-block", background: T.yBg, border: `1px solid ${T.yDim}`, color: T.y, padding: "4px 14px", borderRadius: 99, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, letterSpacing: ".06em", marginBottom: 30 }}>AI-POWERED COLLABORATIVE WHITEBOARD</div>
-      <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(40px,6vw,68px)", fontWeight: 800, color: T.t0, lineHeight: 1.07, letterSpacing: "-.04em", marginBottom: 22 }}>
+    <motion.section
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.1 }}
+      style={{ textAlign: "center", padding: isMobile ? "64px 14px 48px" : "110px 20px 80px", maxWidth: 960, margin: "0 auto" }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.3 }}
+        style={{ display: "inline-block", background: T.yBg, border: `1px solid ${T.yDim}`, color: T.y, padding: "6px 18px", borderRadius: 99, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, letterSpacing: ".1em", marginBottom: 32 }}
+      >
+        AI-POWERED COLLABORATIVE WHITEBOARD
+      </motion.div>
+      <h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(44px,7vw,76px)", fontWeight: 800, color: T.t0, lineHeight: 1.05, letterSpacing: "-.04em", marginBottom: 26 }}>
         Your ideas,{" "}
         <span style={{ color: T.y, fontStyle: "italic" }}>beautifully organized</span>
-        <br />and alive
+        <br />and brought to life
       </h1>
-      <p style={{ color: T.t1, fontSize: isMobile ? 14 : 16, lineHeight: 1.75, maxWidth: 560, margin: "0 auto 40px" }}>BoardAI is a real-time collaborative whiteboard powered by AI. Build mind maps, flowcharts, kanban boards — in seconds. Together.</p>
-      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        <button onClick={() => openAuth("register")} style={{ background: T.y, color: "#0c1829", border: "none", padding: "14px 32px", borderRadius: 11, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 700, boxShadow: "0 4px 24px rgba(250,204,21,.35)", transition: "transform .15s" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>Start for free</button>
-        <button onClick={() => openAuth("login")} style={{ background: "transparent", border: `1px solid ${T.b2}`, color: T.t0, padding: "14px 28px", borderRadius: 11, cursor: "pointer", fontSize: 15, fontFamily: "inherit" }}>Sign in</button>
+      <p style={{ color: T.t1, fontSize: isMobile ? 16 : 18, lineHeight: 1.7, maxWidth: 620, margin: "0 auto 48px" }}>
+        BoardAI is a real-time collaborative workspace where DeepSeek AI helps you map concepts, generate execution plans, and synthesize data instantly.
+      </p>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+        <motion.button
+          whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(250,204,21,.4)" }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => openAuth("register")}
+          style={{ background: T.y, color: "#0c1829", border: "none", padding: "16px 44px", borderRadius: 14, cursor: "pointer", fontSize: 16, fontWeight: 800, boxShadow: "0 4px 20px rgba(250,204,21,.25)" }}
+        >
+          Start for free
+        </motion.button>
+        <button onClick={() => openAuth("login")} style={{ background: "transparent", border: `2px solid ${T.b2}`, color: T.t0, padding: "16px 40px", borderRadius: 14, cursor: "pointer", fontSize: 16, fontWeight: 600 }}>Live Demo</button>
       </div>
-    </section>
+    </motion.section>
 
-    <section style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "0 12px 42px" : "0 24px 80px" }}>
-      <div style={{ background: T.bg1, border: `1px solid ${T.b1}`, borderRadius: 20, padding: isMobile ? 14 : 28, boxShadow: "0 24px 80px rgba(0,0,0,.5)", position: "relative" }}>
+    <motion.section
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      style={{ maxWidth: 1080, margin: "0 auto", padding: isMobile ? "0 12px 48px" : "0 24px 100px" }}
+    >
+      <div style={{ background: `linear-gradient(145deg, ${T.bg1}, ${T.bg2})`, border: `1px solid ${T.b1}`, borderRadius: 32, padding: isMobile ? "20px 16px" : "40px 48px", boxShadow: "0 40px 120px rgba(0,0,0,0.6)", position: "relative", overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 12, marginBottom: 12 }}>
           {[{ bg: "#fef9c3", t: "#713f12", text: "Sticky notes & mind maps" }, { bg: "#dbeafe", t: "#1e3a8a", text: "Shapes & diagrams" }, { bg: "#dcfce7", t: "#14532d", text: "Templates library" }].map((c, i) => <div key={i} style={{ background: c.bg, color: c.t, padding: "18px 16px", borderRadius: 10, fontSize: 12, fontWeight: 600, lineHeight: 1.5 }}>{c.text}</div>)}
         </div>
@@ -108,7 +168,7 @@ export default function LandingPage({ onLogin, themeMode = "dark", onToggleTheme
         </div>
         <div style={{ position: "absolute", top: 14, right: 14, background: T.y, color: "#0c1829", padding: "4px 11px", borderRadius: 99, fontSize: 10, fontFamily: "'JetBrains Mono',monospace", fontWeight: 700 }}>AI</div>
       </div>
-    </section>
+    </motion.section>
 
     <section style={{ maxWidth: 1000, margin: "0 auto", padding: isMobile ? "0 12px 56px" : "0 24px 88px" }}>
       <div style={{ textAlign: "center", marginBottom: 52 }}>
@@ -130,11 +190,26 @@ export default function LandingPage({ onLogin, themeMode = "dark", onToggleTheme
       <button onClick={() => openAuth("register")} style={{ background: T.y, color: "#0c1829", border: "none", padding: "14px 34px", borderRadius: 11, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 700, boxShadow: "0 4px 24px rgba(250,204,21,.35)" }}>Get started free →</button>
     </section>
 
-    <footer style={{ padding: isMobile ? "14px 12px" : "22px 44px", display: "flex", alignItems: "center", justifyContent: "space-between", color: T.t3, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 6 : 0 }}>
-      <span>◈ BoardAI · 2026</span>
-      <span>collaborative whiteboard platform</span>
+    <footer style={{ padding: isMobile ? "24px 12px" : "40px 44px", borderTop: `1px solid ${T.b0}`, display: "flex", alignItems: "center", justifyContent: "space-between", color: T.t3, fontSize: 12, fontFamily: "'JetBrains Mono',monospace", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
+      <span>◈ BOARD AI · STUDIO EDITION 2026</span>
+      <div style={{ display: "flex", gap: 24 }}>
+        <span>Privacy</span>
+        <span>Terms</span>
+        <span>Twitter</span>
+      </div>
     </footer>
 
-    {showAuth && <AuthModal initTab={authTab} onClose={() => setShowAuth(false)} onSuccess={(u) => { setShowAuth(false); onLogin(u); }} T={T} useIsMobileHook={useIsMobileHook} api={api} />}
+    <AnimatePresence>
+      {showAuth && (
+        <AuthModal
+          initTab={authTab}
+          onClose={() => setShowAuth(false)}
+          onSuccess={(u) => { setShowAuth(false); onLogin(u); }}
+          T={T}
+          useIsMobileHook={useIsMobileHook}
+          api={api}
+        />
+      )}
+    </AnimatePresence>
   </div>;
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const TOOLS = [
   { id: "select", icon: "SEL", k: "V" }, { id: "pan", icon: "PAN", k: "H" }, null,
@@ -309,31 +310,81 @@ export default function ToolbarView({
   };
   const toolbarTools = isMobile ? TOOLS : DESKTOP_QUICK_TOOLS;
 
-  return <div style={{ position: "absolute", left: "50%", top: isMobile ? "auto" : 18, bottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "auto", transform: "translateX(-50%)", zIndex: 200, display: "flex", alignItems: "center", gap: 6, background: T.bg2, border: `1px solid ${T.b2}`, borderRadius: 14, padding: "6px", boxShadow: "0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.03)", maxWidth: "calc(100vw - 20px)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+  return <motion.div
+    initial={{ y: isMobile ? 100 : -100, x: "-50%", opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ type: "spring", damping: 20, stiffness: 100 }}
+    style={{
+      position: "absolute",
+      left: "50%",
+      top: isMobile ? "auto" : 18,
+      bottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "auto",
+      zIndex: 200,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      background: T.bg2,
+      border: `1px solid ${T.b2}`,
+      borderRadius: 18,
+      padding: "6px",
+      boxShadow: "0 12px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05)",
+      maxWidth: "calc(100vw - 20px)",
+      overflowX: "auto",
+      WebkitOverflowScrolling: "touch",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+    }}
+  >
     {toolbarTools.map((t2, i) => {
-      if (t2 === null) return <div key={`d${i}`} style={{ width: 1, height: 26, background: T.b0, margin: "0 2px" }} />;
+      if (t2 === null) return <div key={`d${i}`} style={{ width: 1, height: 26, background: T.b0, margin: "0 2px", opacity: 0.5 }} />;
       const isActive = tool === t2.id;
       const label = isMobile ? t2.icon : t2.label;
-      return <button key={t2.id} onClick={() => { if (t2.id === "select") d({ type: "EXIT_ADD_MODE" }); else d({ type: "TOOL", v: t2.id }); }} title={t2.k ? `${t2.id} (${t2.k})` : t2.id}
-        style={{ ...basePill, border: `1px solid ${isActive ? T.yDim : T.b1}`, background: isActive ? T.yBg : T.bg3, color: isActive ? T.y : T.t1, padding: isMobile ? "0 10px" : "0 12px", fontSize: isMobile ? 11 : 12, minHeight: isMobile ? 34 : 36, flexShrink: 0 }}
-        onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = T.bg4; e.currentTarget.style.color = T.t0; } }}
-        onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = T.bg3; e.currentTarget.style.color = T.t1; } }}>
+      return <motion.button
+        key={t2.id}
+        whileHover={{ y: -1, scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => { if (t2.id === "select") d({ type: "EXIT_ADD_MODE" }); else d({ type: "TOOL", v: t2.id }); }}
+        title={t2.k ? `${t2.id} (${t2.k})` : t2.id}
+        style={{
+          ...basePill,
+          borderRadius: 12,
+          border: `1px solid ${isActive ? T.yDim : T.b1}`,
+          background: isActive ? T.yBg : T.bg3,
+          color: isActive ? T.y : T.t1,
+          padding: isMobile ? "0 10px" : "0 14px",
+          fontSize: isMobile ? 11 : 13,
+          minHeight: isMobile ? 34 : 38,
+          flexShrink: 0,
+          fontWeight: isActive ? 700 : 500,
+          boxShadow: isActive ? `0 0 12px ${T.y}33` : "none",
+          transition: "background 0.2s, border-color 0.2s, color 0.2s"
+        }}
+      >
         <span>{label}</span>
-        {!isMobile && t2.k ? <span style={{ fontSize: 10, color: T.t2 }}>{t2.k}</span> : null}
-      </button>;
+        {!isMobile && t2.k ? <span style={{ fontSize: 10, color: T.t2, opacity: 0.7 }}>{t2.k}</span> : null}
+      </motion.button>;
     })}
-    <div style={{ width: 1, height: 26, background: T.b0, margin: "0 2px" }} />
-    <button onClick={() => d({ type: "UNDO" })} disabled={!hist.length} title="Ctrl+Z" style={{ ...basePill, color: hist.length ? T.t1 : T.t3, cursor: hist.length ? "pointer" : "not-allowed", minHeight: 36 }}>Undo</button>
-    <button onClick={() => d({ type: "REDO" })} disabled={!fut.length} title="Ctrl+Y" style={{ ...basePill, color: fut.length ? T.t1 : T.t3, cursor: fut.length ? "pointer" : "not-allowed", minHeight: 36 }}>Redo</button>
-    <button onClick={() => d({ type: "SNAP_TOGGLE" })} title="Snap to grid" style={{ ...basePill, border: `1px solid ${snapGrid ? T.yDim : T.b1}`, background: snapGrid ? T.yBg : T.bg3, color: snapGrid ? T.y : T.t1 }}>Grid</button>
-    <button onClick={() => d({ type: "DEP_MODE" })} title="Dependency mode (Ctrl+Shift+D)" style={{ ...basePill, border: `1px solid ${depMode ? T.yDim : T.b1}`, background: depMode ? T.yBg : T.bg3, color: depMode ? T.y : T.t1 }}>Deps</button>
-    <button onClick={() => { d({ type: "FOCUS_MODE" }); toasts.push(s.focusMode ? "Focus off" : "Focus on"); }} title="Focus mode (Ctrl+Shift+F)" style={{ ...basePill, border: s.focusMode ? "1px solid rgba(139,92,246,.5)" : `1px solid ${T.b1}`, background: s.focusMode ? "rgba(139,92,246,.1)" : T.bg3, color: s.focusMode ? T.purple : T.t1 }}>Focus</button>
-    {sel.length > 0 && <>
-      <button onClick={() => d({ type: "WRAP_FRAME", ids: sel, title: "Frame" })} title="Wrap in Frame" style={basePill}>Wrap</button>
-      <button onClick={() => d({ type: "TIDY", ids: sel })} title="Auto-layout (Ctrl+Shift+L)" style={basePill}>Auto-layout</button>
-      <button onClick={() => d({ type: "DUP" })} title="Ctrl+D" style={basePill}>Duplicate</button>
-      <button onClick={() => d({ type: "DEL", ids: sel })} title="Delete" style={{ ...basePill, border: `1px solid ${T.red}`, color: T.red }}>Delete</button>
-    </>}
+    <div style={{ width: 1, height: 26, background: T.b0, margin: "0 2px", opacity: 0.5 }} />
+    <button onClick={() => d({ type: "UNDO" })} disabled={!hist.length} style={{ ...basePill, color: hist.length ? T.t1 : T.t3, cursor: hist.length ? "pointer" : "not-allowed" }}>Undo</button>
+    <button onClick={() => d({ type: "REDO" })} disabled={!fut.length} style={{ ...basePill, color: fut.length ? T.t1 : T.t3, cursor: fut.length ? "pointer" : "not-allowed" }}>Redo</button>
+    <button onClick={() => d({ type: "SNAP_TOGGLE" })} style={{ ...basePill, border: `1px solid ${snapGrid ? T.yDim : T.b1}`, background: snapGrid ? T.yBg : T.bg3, color: snapGrid ? T.y : T.t1 }}>Grid</button>
+
+    <AnimatePresence>
+      {sel.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          style={{ display: "flex", gap: 6, alignItems: "center" }}
+        >
+          <div style={{ width: 1, height: 26, background: T.b0, margin: "0 2px", opacity: 0.5 }} />
+          <button onClick={() => d({ type: "WRAP_FRAME", ids: sel, title: "Frame" })} style={basePill}>Wrap</button>
+          <button onClick={() => d({ type: "TIDY", ids: sel })} style={basePill}>Auto-layout</button>
+          <button onClick={() => d({ type: "DUP" })} style={basePill}>Duplicate</button>
+          <button onClick={() => d({ type: "DEL", ids: sel })} style={{ ...basePill, border: `1px solid ${T.red}`, color: T.red }}>Delete</button>
+        </motion.div>
+      )}
+    </AnimatePresence>
     {tool === "draw" && <>
       <div style={{ width: 1, height: 26, background: T.b0, margin: "0 2px" }} />
       {[T.y, T.red, T.blue, T.green, "#ffffff", T.purple, T.teal].map((c) => <div key={c} onClick={() => setDrawCol(c)} style={{ width: 18, height: 18, borderRadius: "50%", background: c, border: `2px solid ${drawCol === c ? "#fff" : "transparent"}`, cursor: "pointer", flexShrink: 0, transition: "border .1s" }} />)}
@@ -344,5 +395,5 @@ export default function ToolbarView({
       <div style={{ width: 1, height: 26, background: T.b0, margin: "0 2px" }} />
       <button onClick={() => d({ type: "CLEAR_VOTES" })} style={{ ...basePill, border: `1px solid ${T.yDim}`, color: T.y }}>Reset Votes</button>
     </>}
-  </div>;
+  </motion.div>;
 }

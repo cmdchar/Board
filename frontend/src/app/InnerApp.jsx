@@ -1,4 +1,5 @@
 ﻿import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import CommandPalette from "../components/CommandPalette";
 
 export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,themeMode,onToggleTheme,wb,deps:innerDeps}){
   const{s,d,emitActivity}=wb;
@@ -7,14 +8,15 @@ export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,t
     SHAPE_TYPES,SHAPE_DEFAULTS,getTableInfo,TABLE_DEFAULT_COL_WIDTH,TABLE_MIN_COLS,TABLE_MIN_ROWS,TABLE_MIN_COL_WIDTH,TABLE_MAX_COL_WIDTH,
     EDITOR_ONBOARDING_STORAGE_KEY,QUICK_START_PRESETS,
     isAddMode,isConnectMode,modeToTool,nextModeAfterAdd,nextModeAfterConnect,toolToMode,
-    normalizeConnectorRouting,normalizeConnectorStyle,normalizeConnectorJumpStyle,normalizeConnectorDefaultStyle,normalizeConnectorEndpoints,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,createTransformNode,isDataConnector,isDataNodeType,reverseConnector,getConnectorDependencyType,dependencyTypeLabel,formatNumber,chartSeriesPath,
+    normalizeConnectorRouting,normalizeConnectorStyle,normalizeConnectorJumpStyle,normalizeConnectorEndpoints,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,createTransformNode,isDataConnector,isDataNodeType,reverseConnector,getConnectorDependencyType,dependencyTypeLabel,formatNumber,chartSeriesPath,
     parseJsonObjectLoose,buildQuickStartGraph,normExecDueDate,normExecStatus,normExecPriority,parseExecTags,composeTaskNodeText,composeMilestoneNodeText,composeDecisionNodeText,
     normalizePresenceState,deriveExecutionSnapshot,useDataFlowEngine,useIsMobile,
-    Canvas,TopBar,ExecutionTimelineOverlay,Toolbar,LeftToolbar,Minimap,AlignPanel,Timer,TplPanel,SearchPanel,PresentBarView,RightPanel,RightToolPanel,MobileQuickActionsBar,MobileBottomBar,MobileBottomSheet,EmptyBoardPromptView,EditorOnboardingOverlayView,
+    Canvas,TopBar,ExecutionTimelineOverlay,Toolbar,LeftToolbar,Minimap,AlignPanel,Timer,TplPanel,SearchPanel,PresentBarView,RightPanel,RightToolPanel,MobileQuickActionsBar,MobileBottomBar,MobileBottomSheet,EmptyBoardPromptView,EditorOnboardingOverlayView,makeNoteNode,
   }=innerDeps;
   const isMobile=useIsMobile(920);
   const[showTpl,setShowTpl]=useState(false);
   const[showSearch,setShowSearch]=useState(false);
+  const[showPalette,setShowPalette]=useState(false);
   const[showMinimap,setShowMinimap]=useState(false);
   const[presentMode,setPresentMode]=useState(false);
   const[presentIdx,setPresentIdx]=useState(0);
@@ -336,6 +338,33 @@ export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,t
     window.addEventListener("boardai:generate-board",onGenerate);
     return()=>window.removeEventListener("boardai:generate-board",onGenerate);
   },[runQuickAiBoard]);
+
+  useEffect(() => {
+    const onFocusNote = e => {
+      const idOrTitle = String(e?.detail?.id || "").trim();
+      if (!idOrTitle) return;
+      let node = s.nodes.find(n => n.id === idOrTitle);
+      if (!node) {
+        node = s.nodes.find(n => {
+          if (n.type !== 'note') return false;
+          const title = n.text?.split('\n')[0].replace(/^#+\s*/, '').trim();
+          return title?.toLowerCase() === idOrTitle.toLowerCase();
+        });
+      }
+      if (node) {
+        d({ type: "SEL", v: [node.id] });
+        const cx = (node.x || 0) + (node.w || 400) / 2;
+        const cy = (node.y || 0) + (node.h || 500) / 2;
+        const tx = window.innerWidth * 0.5 - cx * s.zoom;
+        const ty = window.innerHeight * 0.42 - cy * s.zoom;
+        d({ type: "PAN", x: tx, y: ty });
+      } else {
+        toasts.push(`Note "${idOrTitle}" not found`, "info");
+      }
+    };
+    window.addEventListener("boardai:focus-note", onFocusNote);
+    return () => window.removeEventListener("boardai:focus-note", onFocusNote);
+  }, [s.nodes, s.zoom, d, toasts]);
   const updateTimelineTaskDueDate=useCallback((nodeId,dueDate)=>{
     const node=s.nodes.find(n=>n.id===nodeId);
     if(!node)return;
@@ -627,11 +656,20 @@ export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,t
     };
   },[boardId,myPresence,presentMode,setPresence]);
 
-  // Ctrl+K / Escape
+  // Command Palette / Search / Escape
   useEffect(()=>{
     const h=e=>{
-      if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();setShowSearch(p=>!p);}
-      if(e.key==="Escape"){setShowSearch(false);setShowTpl(false);setMobileSheet("");d({type:"EXIT_ADD_MODE"});}
+      if((e.ctrlKey||e.metaKey)&&e.key==="k"){
+        e.preventDefault();
+        setShowPalette(p=>!p);
+      }
+      if(e.key==="Escape"){
+        setShowSearch(false);
+        setShowPalette(false);
+        setShowTpl(false);
+        setMobileSheet("");
+        d({type:"EXIT_ADD_MODE"});
+      }
     };
     window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);
   },[d]);
@@ -1055,7 +1093,7 @@ export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,t
   return<>
     <style>{CSS}</style>
     <div style={{display:"flex",flexDirection:"column",height:"100vh",width:"100vw",background:T.bg0}}>
-        {!presentMode&&<TopBar onTpl={()=>setShowTpl(o=>!o)} onSearch={()=>setShowSearch(o=>!o)} onPresent={()=>{setPresentMode(true);setPresentIdx(0);}} isSaved={isSaved} boardName={boardName} onRename={handleRename} onBoards={onBoards} isMobile={isMobile} onToggleRight={()=>{if(isMobile)toggleMobileSheetKind("panel");else setRightPanelOpen(v=>!v);}} rightOpen={isMobile?mobileSheet==="panel":rightPanelOpen} onToggleTools={()=>toggleMobileSheetKind("insert")} toolsOpen={mobileSheet==="insert"} onToggleMore={()=>toggleMobileSheetKind("more")} moreOpen={mobileSheet==="more"} themeMode={themeMode} onToggleTheme={onToggleTheme} showMinimap={showMinimap} onToggleMinimap={()=>setShowMinimap(v=>!v)} showTimeline={timelineOpen} onToggleTimeline={toggleTimeline}/>}
+        {!presentMode&&<TopBar onTpl={()=>setShowTpl(o=>!o)} onSearch={()=>setShowPalette(true)} onPresent={()=>{setPresentMode(true);setPresentIdx(0);}} isSaved={isSaved} boardName={boardName} onRename={handleRename} onBoards={onBoards} isMobile={isMobile} onToggleRight={()=>{if(isMobile)toggleMobileSheetKind("panel");else setRightPanelOpen(v=>!v);}} rightOpen={isMobile?mobileSheet==="panel":rightPanelOpen} onToggleTools={()=>toggleMobileSheetKind("insert")} toolsOpen={mobileSheet==="insert"} onToggleMore={()=>toggleMobileSheetKind("more")} moreOpen={mobileSheet==="more"} themeMode={themeMode} onToggleTheme={onToggleTheme} showMinimap={showMinimap} onToggleMinimap={()=>setShowMinimap(v=>!v)} showTimeline={timelineOpen} onToggleTimeline={toggleTimeline}/>}
       <div style={{display:"flex",flex:1,overflow:"hidden",position:"relative"}}>
         <Canvas
           presentMode={presentMode}
@@ -1115,7 +1153,24 @@ export default function InnerApp({boardId,boardName,setBoardName,onBoards,user,t
             window.location.assign(u.toString());
           }}
         />}
-        {showSearch&&!presentMode&&<SearchPanel onClose={()=>setShowSearch(false)}/>}
+        {showSearch&&!presentMode&&<SearchPanel onClose={()=>setShowSearch(false)} api={api} boardId={boardId} />}
+        <CommandPalette
+          isOpen={showPalette}
+          onClose={() => setShowPalette(false)}
+          api={api}
+          boardId={boardId}
+          s={s}
+          d={d}
+          T={T}
+          themeMode={themeMode}
+          onToggleTheme={onToggleTheme}
+          onToggleMinimap={() => setShowMinimap(v => !v)}
+          onToggleTimeline={toggleTimeline}
+          showMinimap={showMinimap}
+          showTimeline={timelineOpen}
+          rightOpen={rightPanelOpen}
+          onToggleRight={() => { if(isMobile) toggleMobileSheetKind("panel"); else setRightPanelOpen(v => !v); }}
+        />
         {presentMode&&<PresentBarView onExit={()=>setPresentMode(false)} frames={frames} curIdx={presentIdx} setCurIdx={setPresentIdx} T={T}/>}
         {!presentMode&&!isMobile&&rightPanelOpen&&<RightPanel s={s} d={d} T={T} SC={SC} uid={uid} SHAPE_TYPES={SHAPE_TYPES} SHAPE_DEFAULTS={SHAPE_DEFAULTS} getTableInfo={getTableInfo} TABLE_DEFAULT_COL_WIDTH={TABLE_DEFAULT_COL_WIDTH} TABLE_MIN_COLS={TABLE_MIN_COLS} TABLE_MIN_ROWS={TABLE_MIN_ROWS} TABLE_MIN_COL_WIDTH={TABLE_MIN_COL_WIDTH} TABLE_MAX_COL_WIDTH={TABLE_MAX_COL_WIDTH} boardId={boardId} historyApi={historyApi} accessApi={accessApi} auditApi={auditApi} githubApi={githubApi} jiraApi={jiraApi} vaultApi={vaultApi} currentUser={user} onRestoreVersion={applyRestoredState} notify={(msg,type)=>toasts.push(msg,type)} onToggleTimeline={toggleTimeline} timelineOpen={timelineOpen} collab={collabModel} onEmitActivity={handleEmitActivity} panelWidth={360} topOffset={68} rightInset={12} onRequestClose={()=>setRightPanelOpen(false)} onSpreadsheetAnomalyMapChange={updateSheetAiAnomalyMap} selectedConnector={selectedConnector} onUpdateConnector={(id,patch)=>d({type:"UPD_ARR",id,p:patch})} onDeleteConnector={(id)=>{d({type:"DEL_ARR",id});setSelectedConnectorId("");}}/>}
         {!presentMode&&isMobile&&!mobileSheet&&s.sel.length>0&&<MobileQuickActionsBar

@@ -309,6 +309,10 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
   const [preview, setPreview] = useState(null);
   const [lastRun, setLastRun] = useState(null);
   const [replaceOnInsert, setReplaceOnInsert] = useState(false);
+  const [semanticClusters, setSemanticClusters] = useState([]);
+  const [semanticLoading, setSemanticLoading] = useState(false);
+  const [pinnedClusters, setPinnedClusters] = useState(new Set());
+  const [rejectedClusters, setRejectedClusters] = useState(new Set());
 
   const selectedNodes = useMemo(() => {
     const selected = new Set(toArray(s.sel));
@@ -539,6 +543,81 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
   const runDecisionHelper = useCallback(() => runIntent(INTENTS.decision_helper, prompt), [prompt, runIntent]);
   const runSummary = useCallback(() => runIntent(INTENTS.summary, prompt), [prompt, runIntent]);
 
+  const findSemanticClusters = useCallback(async () => {
+    if (semanticLoading) return;
+    setSemanticLoading(true);
+    try {
+      const notes = s.nodes.filter(n => n.type === 'note' && n.text.length > 20);
+      if (notes.length < 2) {
+        setSemanticClusters([]);
+        return;
+      }
+
+      const clusters = [];
+      const seenIds = new Set();
+
+      for (const note of notes.slice(0, 8)) {
+        if (seenIds.has(note.id)) continue;
+
+        const clusterId = `cluster-${note.id}`;
+        if (rejectedClusters.has(clusterId)) continue;
+
+        const title = note.text.split('\n')[0].replace(/^#+\s*/, '').trim() || 'Note';
+        const res = await fetch(`/api/boards/${s.boardId}/embeddings/search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("boardai_token")}`
+          },
+          body: JSON.stringify({ q: note.text.slice(0, 500), limit: 5 }),
+        }).then(r => r.json());
+
+        if (res.results && res.results.length > 1) {
+          // Dynamic Ranking: Use mean of scores as threshold if above 0.75
+          const scores = res.results.map(r => r.score);
+          const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+          const threshold = Math.max(0.78, mean * 0.98);
+
+          const matches = res.results.filter(m => m.id !== note.id && m.score >= threshold);
+          if (matches.length > 0) {
+            clusters.push({
+              id: clusterId,
+              label: `Related to "${cut(title, 20)}"`,
+              members: [note.id, ...matches.map(m => m.id)],
+              score: matches[0].score,
+              pinned: pinnedClusters.has(clusterId)
+            });
+            seenIds.add(note.id);
+            matches.forEach(m => seenIds.add(m.id));
+          }
+        }
+      }
+      setSemanticClusters(clusters.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.score - a.score));
+    } catch (err) {
+      console.error("Semantic clustering failed", err);
+    } finally {
+      setSemanticLoading(false);
+    }
+  }, [s.boardId, s.nodes, semanticLoading, pinnedClusters, rejectedClusters]);
+
+  const pinCluster = useCallback((id) => {
+    setPinnedClusters(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const rejectCluster = useCallback((id) => {
+    setRejectedClusters(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setSemanticClusters(prev => prev.filter(c => c.id !== id));
+  }, []);
+
   return {
     prompt,
     setPrompt,
@@ -550,6 +629,11 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
     setReplaceOnInsert,
     selectedCount: selectedNodes.length,
     smartSuggestions,
+    semanticClusters,
+    semanticLoading,
+    findSemanticClusters,
+    pinCluster,
+    rejectCluster,
     examplePrompts: THINKING_EXAMPLE_PROMPTS,
     runBoardGeneration,
     runFlowGeneration,

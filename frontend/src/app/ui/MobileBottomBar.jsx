@@ -41,18 +41,20 @@ export default function MobileBottomBarView({
     <div
       style={{
         position: "absolute",
-        left: 8,
-        right: 8,
-        bottom: "max(8px, env(safe-area-inset-bottom))",
+        left: 10,
+        right: 10,
+        bottom: "max(10px, env(safe-area-inset-bottom))",
         zIndex: 230,
         padding: 6,
-        borderRadius: 14,
+        borderRadius: 18,
         border: `1px solid ${T.b1}`,
-        background: T.bg1,
-        boxShadow: "0 12px 36px rgba(0,0,0,.4)",
+        background: `${T.bg1}dd`,
+        boxShadow: "0 24px 48px rgba(0,0,0,.5)",
         display: "flex",
         gap: 6,
         alignItems: "center",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
       }}
     >
       <Btn label={navLabel} active={tool === "pan" || tool === "select"} onClick={onToggleMode} />

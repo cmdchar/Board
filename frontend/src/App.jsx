@@ -49,6 +49,7 @@ import { useCanvasTouchMoveHandler } from "./app/hooks/useCanvasTouchMoveHandler
 import { loadStoredConnectorDefaultStyle, loadStoredRememberLastConnectorStyle, saveStoredConnectorDefaultStyle, saveStoredRememberLastConnectorStyle } from "./app/utils/connectorStyleStorage";
 import ConnectorRenderer from "./app/canvas/ConnectorRenderer";
 import NodeRenderer from "./app/canvas/NodeRenderer";
+import NoteNode from "./app/canvas/NoteNode";
 import SpreadsheetNodeView from "./app/canvas/SpreadsheetNode";
 import SelectionOverlay from "./app/canvas/SelectionOverlay";
 import GuidesOverlay from "./app/canvas/GuidesOverlay";
@@ -73,6 +74,7 @@ import { applyJumpsToPath, buildObstacleIndex, buildObstacleRects, clampCanvasPo
 import { appendFormulaReference, buildSheetReferenceToken, createSpreadsheetEngine, sheetCellKey, sheetColLabel } from "./lib/spreadsheet/engine";
 import { createTransformNode, isDataConnector, isDataNodeType, normalizeChartType, normalizeTransformType, wouldCreateDataFlowCycle } from "./lib/dataflow/engine";
 import { createBoardState } from "./state/boardState";
+import { useStore } from "./state/useStore";
 import { UI_TOKENS, applyUiTheme, getStoredUiTheme } from "./styles/tokens";
 import { deriveExecutionSnapshot } from "./hooks/useExecutionIntelligence";
 import { useDataFlowEngine } from "./hooks/useDataFlowEngine";
@@ -543,6 +545,7 @@ const {
   MINDMAP_CHILD_GAP_Y,
   makeShapeNode,
   makeSheetNode,
+  makeNoteNode,
   makeDeckNode,
   getTableInfo,
   getTableColumnStart,
@@ -700,6 +703,7 @@ const api={
   revokeApiToken:(tokenId)=>fetch(`/api/auth/tokens/${tokenId}`,{method:"DELETE",headers:api._ah()}).then(r=>api._json(r)),
   login:(email,password)=>fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})}).then(r=>r.json()),
   register:(email,name,password)=>fetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,name,password})}).then(r=>r.json()),
+  semanticSearch:(id,q,limit=5)=>fetch(`/api/boards/${id}/embeddings/search`,{method:"POST",headers:api._ah(),body:JSON.stringify({q,limit})}).then(r=>r.json()),
 };
 
 /* ------------------------------------------------------------
@@ -719,7 +723,7 @@ const ME=getMe();
 const socket=io({autoConnect:false,reconnection:true,reconnectionDelay:1000});
 
 function WBP({children,boardId,boardName}){
-  const[s,baseDispatch]=useReducer(reducer,INIT);
+  const s = useStore();
   const[ready,setReady]=useState(false);
   const isRemote=useRef(false);
   const boardRevisionRef=useRef(1);
@@ -752,7 +756,61 @@ function WBP({children,boardId,boardName}){
   },[boardId]);
 
   const d=useCallback((action)=>{
-    baseDispatch(action);
+    const st = useStore.getState();
+    switch(action.type) {
+      case "TOOL": st.setTool(action.v); break;
+      case "EXIT_ADD_MODE": st.exitAddMode(); break;
+      case "SEL": st.setSel(action.v); break;
+      case "ZOOM": st.setZoom(action.v); break;
+      case "PAN": st.setPan(action.x, action.y); break;
+      case "ADD": st.addNode(action.node); break;
+      case "UPD": st.updateNode(action.id, action.p); break;
+      case "UPD_SEL": st.updateSel(action.p); break;
+      case "UPD_MULTI": st.updateMulti(action.deltas); break;
+      case "MOVE_SEL": st.moveSel(action.dx, action.dy); break;
+      case "SEL_ALL": st.selAll(); break;
+      case "DEL": st.deleteSelected(action.ids); break;
+      case "ADD_ARR": st.addArrow(action.arr); break;
+      case "DEL_ARR": st.deleteArrow(action.id); break;
+      case "UPD_ARR": st.updateArrow(action.id, action.p); break;
+      case "UNDO": st.undo(); break;
+      case "REDO": st.redo(); break;
+      case "DUP": st.duplicateSelected(uid); break;
+      case "TIDY": st.tidy(action.ids); break;
+      case "WRAP_FRAME": st.wrapFrame(action.ids, action.title, uid); break;
+      case "GROUP": st.groupSelected(uid); break;
+      case "UNGROUP": st.ungroupSelected(); break;
+      case "ALIGN": st.align(action.d); break;
+      case "SNAP_TOGGLE": st.toggleSnap(); break;
+      case "DEP_MODE": st.toggleDepMode(action.v); break;
+      case "FOCUS_MODE": st.toggleFocusMode(); break;
+      case "LOAD": st.loadState(action.state); break;
+      case "APPLY": st.loadState({ nodes: action.replace ? action.nodes : [...st.nodes, ...action.nodes], arrows: action.replace ? action.arrows : [...st.arrows, ...(action.arrows || [])] }); break;
+      case "CLEAR": st.loadState({ nodes: [], arrows: [], comments: [], drawings: [], votes: {} }); break;
+      case "ADD_COMMENT": st.addComment(action.c); break;
+      case "UPDATE_COMMENT": st.updateComment(action.id, action.patch); break;
+      case "DEL_COMMENT": st.deleteComment(action.id); break;
+      case "ADD_VOTE": st.addVote(action.nodeId); break;
+      case "CLEAR_VOTES": st.clearVotes(); break;
+      case "ADD_DRAW": st.addDraw(action.d); break;
+      case "CLEAR_DRAWS": st.clearDraws(); break;
+      case "SET_BG": st.setBg(action.v); break;
+      case "SET_THEME": st.setCanvasTheme(action.v, CANVAS_THEMES.find(t => t.id === action.v)?.bg); break;
+      case "ADD_REACTION": st.addReaction(action.nodeId, action.emoji); break;
+      case "REMOVE_REACTION": st.removeReaction(action.nodeId, action.emoji); break;
+      case "STICKY_SIZE": st.setStickySize(action.v); break;
+      case "SET_TEXT_ALIGN": st.setTextAlign(action.v); break;
+      case "Z_FRONT": st.zFront(); break;
+      case "Z_BACK": st.zBack(); break;
+      case "LOCK_SEL": st.lockSelected(); break;
+      case "TABLE_ADD_ROW": st.tableAddRow(action.tableId, action.row, getTableInfo, uid); break;
+      case "TABLE_DEL_ROW": st.tableDelRow(action.tableId, action.row, getTableInfo); break;
+      case "TABLE_ADD_COL": st.tableAddCol(action.tableId, action.col, getTableInfo, getTableColumnStart, uid, T); break;
+      case "TABLE_DEL_COL": st.tableDelCol(action.tableId, action.col, getTableInfo); break;
+      case "TABLE_SET_COL_WIDTH": st.tableSetColWidth(action.tableId, action.col, action.width, getTableInfo); break;
+      case "TABLE_MERGE_SEL": st.tableMerge(getTableInfo); break;
+      case "TABLE_UNMERGE_SEL": st.tableUnmerge(getTableInfo, getTableColumnStart); break;
+    }
     const evtType=ACTIVITY_TYPES[action?.type];
     if(!evtType)return;
     emitActivity({
@@ -770,7 +828,7 @@ function WBP({children,boardId,boardName}){
   useEffect(()=>{
     if(!boardId){
       // No board selected — try localStorage fallback
-      try{const sv=localStorage.getItem("boardai_v7");if(sv){const p=JSON.parse(sv);if(p.nodes?.length)d({type:"APPLY",nodes:p.nodes,arrows:p.arrows||[],replace:true});}}catch{}
+      try{const sv=localStorage.getItem("boardai_v7");if(sv){const p=JSON.parse(sv);if(p.nodes?.length)s.loadState(p);}}catch{}
       setReady(true);return;
     }
     setReady(false);
@@ -778,7 +836,7 @@ function WBP({children,boardId,boardName}){
       boardRevisionRef.current=Math.max(1,Number(b?.revision)||1);
       if(b.data?.nodes?.length){
         isRemote.current=true;
-        d({type:"LOAD",state:{...INIT,...b.data}});
+        s.loadState(b.data);
       }
       setReady(true);
     }).catch(()=>setReady(true));
@@ -795,7 +853,7 @@ function WBP({children,boardId,boardName}){
       const revision=Number(payload?.revision);
       if(Number.isFinite(revision)&&revision>=1)boardRevisionRef.current=Math.floor(revision);
       isRemote.current=true;
-      d({type:"LOAD",state:{...INIT,...state}});
+      s.loadState(state);
     };
     const onJoinErr=ev=>{toasts.push(ev?.error||"Cannot join board","error");};
     const onSyncErr=ev=>{toasts.push(ev?.error||"Sync denied","error");};
@@ -842,7 +900,7 @@ function WBP({children,boardId,boardName}){
               const latest=await api.board(boardId);
               boardRevisionRef.current=Math.max(1,Number(latest?.revision)||1);
               isRemote.current=true;
-              d({type:"LOAD",state:{...INIT,...(latest?.data||{})}});
+              s.loadState(latest?.data || {});
               toasts.push("Board changed in another session. Loaded latest revision.","warn");
             }catch{
               toasts.push("Board revision conflict. Reload board.","error");
@@ -1452,12 +1510,13 @@ function Canvas(props){
   normalizeConnectorDefaultStyle,normalizeConnectorJumpStyle,normalizeConnectorRouting,normalizeConnectorStyle,reverseConnector,
   applyJumpsToPath,buildObstacleIndex,buildObstacleRects,clampCanvasPoint,connectorMidpoint,defaultConnectorPath,queryObstacleIndex,routeOrthoAStar,segmentIntersectsRect,segmentsToIntersections,
   appendFormulaReference,buildSheetReferenceToken,createSpreadsheetEngine,sheetCellKey,sheetColLabel,
-  createTransformNode,isDataConnector,isDataNodeType,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,collectDependency,SHAPE_DEFAULTS,makeShapeNode,makeSheetNode,makeDeckNode,
+  createTransformNode,isDataConnector,isDataNodeType,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,collectDependency,SHAPE_DEFAULTS,makeShapeNode,makeSheetNode,makeNoteNode,makeDeckNode,
   useCanvasUiState,useConnectorStyleController,useSheetFormulaBridge,useCanvasTransientUiHandlers,useConnectorSelectionSync,useCanvasImageIo,useCanvasWheelPanZoom,useCanvasLaserTrail,useTouchPointerCapture,useCanvasTouchHelpers,useCanvasMouseMoveRaf,useCanvasTouchMoveRaf,useTouchGestureUndoRedo,useTouchRadialMenuEnd,useTouchLongPressEnd,useTouchDoubleTapEnd,usePortConnectController,useConnectorContextMenu,useCanvasContextCommands,useCanvasPointerController,useCanvasContextMenuController,useCanvasContextImageUpload,useCanvasDoubleClickInsert,useCanvasNodeTransformStart,useCanvasNodeTouchStart,useCanvasTouchStartTarget,useCanvasTouchMoveNonPinch,useCanvasTouchEndHandler,useCanvasTouchStartTwoFinger,useCanvasTouchMovePinch,useCanvasTouchStartHandler,useCanvasTouchMoveHandler,
   ContextMenu,MobileBottomSheet,MobileRadialMenu,ConnectorRenderer,NodeRenderer,SelectionOverlay,GuidesOverlay,RemoteCursorsView,CanvasHud,ConnectorStylePanels,
   normalizeColorInputValue,getThemeColorHex,normExecStatus,normExecPriority,normExecDueDate,parseExecTags,normalizePresenceState,normalizeDependencyType,inferDependencyType,dependencyTypeLabel,getConnectorDependencyType,composeTaskNodeText,composeMilestoneNodeText,composeDecisionNodeText,isKpiNodeLike,formatNumber,chartSeriesPath,
-  Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode,ArrowLabel,CommentDot,RH,RotH,
+  Sticky,TaskNode,MilestoneNode,DecisionNode,TransformNode,ChartNode,KpiNode,Shape,TxtNode,ImgNode,FrameNode,LaneNode,SpreadsheetNode,DeckNode,NoteNode,ArrowLabel,CommentDot,RH,RotH,
   socket,
+  nodes: wb.s.nodes,
   };
   return <CanvasView {...props} wb={wb} deps={canvasDeps}/>;
 }
@@ -1789,7 +1848,7 @@ function InnerApp(props){
   normalizeConnectorRouting,normalizeConnectorStyle,normalizeConnectorJumpStyle,normalizeConnectorDefaultStyle,normalizeConnectorEndpoints,normalizeChartType,normalizeTransformType,wouldCreateDataFlowCycle,createTransformNode,isDataConnector,isDataNodeType,reverseConnector,getConnectorDependencyType,dependencyTypeLabel,formatNumber,chartSeriesPath,
   parseJsonObjectLoose,buildQuickStartGraph,normExecDueDate,normExecStatus,normExecPriority,parseExecTags,composeTaskNodeText,composeMilestoneNodeText,composeDecisionNodeText,
   normalizePresenceState,deriveExecutionSnapshot,useDataFlowEngine,useIsMobile,
-  Canvas,TopBar,ExecutionTimelineOverlay,Toolbar,LeftToolbar,Minimap,AlignPanel,Timer,TplPanel,SearchPanel,PresentBarView,RightPanel,RightToolPanel,MobileQuickActionsBar,MobileBottomBar,MobileBottomSheet,EmptyBoardPromptView,EditorOnboardingOverlayView,
+  Canvas,TopBar,ExecutionTimelineOverlay,Toolbar,LeftToolbar,Minimap,AlignPanel,Timer,TplPanel,SearchPanel,PresentBarView,RightPanel,RightToolPanel,MobileQuickActionsBar,MobileBottomBar,MobileBottomSheet,EmptyBoardPromptView,EditorOnboardingOverlayView,makeNoteNode,
   };
   return <InnerAppView {...props} wb={wb} deps={innerAppDeps}/>;
 }

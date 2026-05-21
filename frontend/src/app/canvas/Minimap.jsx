@@ -19,7 +19,22 @@ export default function MinimapView({ s, d, onClose, rightInset = 300, T }) {
     vpY = -py / zoom;
   return (
     <div
-      style={{ position: "absolute", bottom: 60, right: rightInset, width: W, height: H, background: T.bg2, border: `1px solid ${T.b1}`, borderRadius: 8, overflow: "hidden", zIndex: 60, boxShadow: "0 4px 20px rgba(0,0,0,.5)", cursor: "crosshair" }}
+      style={{
+        position: "absolute",
+        bottom: 74,
+        right: rightInset,
+        width: W,
+        height: H,
+        background: `${T.bg2}dd`,
+        border: `1px solid ${T.b2}`,
+        borderRadius: 14,
+        overflow: "hidden",
+        zIndex: 60,
+        boxShadow: "0 12px 32px rgba(0,0,0,.4)",
+        cursor: "crosshair",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
       onClick={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
         const mx = (e.clientX - r.left) / sc + bx,
