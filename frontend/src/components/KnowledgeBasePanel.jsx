@@ -33,6 +33,14 @@ export default function KnowledgeBasePanel({ nodes, onFocusNote, T, selectedNode
     const oMap = {};
     const edges = [];
 
+    // 1. Structural Edges (Canvas Arrows)
+    // We look at arrows from/to any visible node
+    const allNodeIds = new Set(nodes.map(n => n.id));
+    // Since arrows aren't passed directly, we'd need them.
+    // BUT the KB panel is focused on Obsidian.
+    // Let's stick to Obsidian + inferred for now, or assume we might want to pass arrows later.
+    // For now, let's focus on making the Obsidian links "Type: Wikilink"
+
     notes.forEach(note => {
       const links = note.text.match(/\[\[(.*?)\]\]/g);
       if (links) {
@@ -45,21 +53,48 @@ export default function KnowledgeBasePanel({ nodes, onFocusNote, T, selectedNode
             if (!bMap[targetId]) bMap[targetId] = [];
             bMap[targetId].push({
               id: note.id,
-              title: note.text.split('\n')[0].replace(/^#+\s*/, '').trim() || 'Untitled Note'
+              title: note.text.split('\n')[0].replace(/^#+\s*/, '').trim() || 'Untitled Note',
+              type: 'wikilink'
             });
 
             // Outgoing links
             if (!oMap[note.id]) oMap[note.id] = [];
             oMap[note.id].push({
               targetId,
-              targetTitle: targetStr
+              targetTitle: targetStr,
+              type: 'wikilink'
             });
 
-            edges.push({ source: note.id, target: targetId });
+            edges.push({ source: note.id, target: targetId, type: 'wikilink' });
           }
         });
       }
     });
+
+    // 2. Temporal sequence (Inferred from notes with dates)
+    const datedNotes = notes
+      .filter(n => {
+        const dateMatch = n.text.match(/\d{4}-\d{2}-\d{2}/);
+        return dateMatch !== null;
+      })
+      .sort((a, b) => {
+        const da = a.text.match(/\d{4}-\d{2}-\d{2}/)[0];
+        const db = b.text.match(/\d{4}-\d{2}-\d{2}/)[0];
+        return new Date(da) - new Date(db);
+      });
+
+    for (let i = 0; i < datedNotes.length - 1; i++) {
+      const sourceId = datedNotes[i].id;
+      const targetId = datedNotes[i+1].id;
+      edges.push({ source: sourceId, target: targetId, type: 'temporal' });
+
+      if (!oMap[sourceId]) oMap[sourceId] = [];
+      oMap[sourceId].push({ targetId, targetTitle: 'Next in time', type: 'temporal' });
+
+      if (!bMap[targetId]) bMap[targetId] = [];
+      bMap[targetId].push({ id: sourceId, title: 'Previous in time', type: 'temporal' });
+    }
+
     return { backlinksMap: bMap, outgoingLinksMap: oMap, allEdges: edges };
   }, [notes, titleToIdMap]);
 
@@ -316,20 +351,26 @@ function LocalGraphView({ notes, edges, selectedNodeId, onFocusNote, T }) {
     <div ref={containerRef} style={{ width: '100%', height: '100%', background: T.bg0, position: 'relative', overflow: 'hidden' }}>
       <svg style={{ width: '100%', height: '100%' }}>
         {/* Render Edges */}
-        {graphData.edges.map((edge, i) => (
-          <motion.line
-            key={`edge-${i}`}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.3 }}
-            x1={edge.x1}
-            y1={edge.y1}
-            x2={edge.x2}
-            y2={edge.y2}
-            stroke={T.y}
-            strokeWidth="1.5"
-            strokeDasharray="4 2"
-          />
-        ))}
+        {graphData.edges.map((edge, i) => {
+          const isTemporal = edge.type === 'temporal';
+          const stroke = isTemporal ? T.blue : T.y;
+          const dash = isTemporal ? "2 2" : "4 2";
+
+          return (
+            <motion.line
+              key={`edge-${i}`}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.3 }}
+              x1={edge.x1}
+              y1={edge.y1}
+              x2={edge.x2}
+              y2={edge.y2}
+              stroke={stroke}
+              strokeWidth={isTemporal ? "1" : "1.5"}
+              strokeDasharray={dash}
+            />
+          );
+        })}
 
         {/* Render Nodes */}
         {graphData.nodes.map((node) => {

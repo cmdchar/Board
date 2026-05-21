@@ -3,7 +3,9 @@ import {
   Search, Command, MousePointer2, Hand, StickyNote, Type,
   FileText, ArrowRight, Square, Circle, Diamond,
   Undo2, Redo2, Maximize, Trash2, Sun, Moon,
-  Map, PanelRight, Calendar, BrainCircuit
+  Map, PanelRight, Calendar, BrainCircuit,
+  AlignLeft, AlignCenter, AlignRight, LayoutGrid,
+  Download, Upload, Share2, Sparkles, Layers
 } from 'lucide-react';
 
 export default function CommandPalette({ isOpen, onClose, s, d, T, themes, themeMode, onToggleTheme, onToggleMinimap, onToggleTimeline, showMinimap, showTimeline, rightOpen, onToggleRight, api, boardId }) {
@@ -36,10 +38,30 @@ export default function CommandPalette({ isOpen, onClose, s, d, T, themes, theme
     { id: 'shape-circle', label: 'Add Circle', icon: <Circle size={16} />, category: 'Shapes', shortcut: 'C', action: () => d({ type: "TOOL", v: "circle" }) },
     { id: 'shape-diamond', label: 'Add Diamond', icon: <Diamond size={16} />, category: 'Shapes', shortcut: 'D', action: () => d({ type: "TOOL", v: "diamond" }) },
 
+    // Alignment (Selection Context)
+    { id: 'align-left', label: 'Align Left', icon: <AlignLeft size={16} />, category: 'Arrangement', action: () => d({ type: "ALIGN", d: "left" }) },
+    { id: 'align-center', label: 'Align Horizontal Center', icon: <AlignCenter size={16} />, category: 'Arrangement', action: () => d({ type: "ALIGN", d: "cx" }) },
+    { id: 'layout-grid', label: 'Auto Layout Grid', icon: <LayoutGrid size={16} />, category: 'Arrangement', action: () => d({ type: "TIDY" }) },
+
+    // AI & Intelligence
+    { id: 'ai-clusters', label: 'Rescan Semantic Clusters', icon: <Sparkles size={16} />, category: 'AI Intelligence', action: () => {
+      // Trigger scan in thinking model if possible, or just focus inspector
+      if (!rightOpen) onToggleRight();
+    }},
+    { id: 'ai-layer', label: 'Toggle Dependency Mode', icon: <Layers size={16} />, category: 'AI Intelligence', action: () => d({ type: "DEP_MODE" }) },
+
     // Board Actions
     { id: 'action-undo', label: 'Undo', icon: <Undo2 size={16} />, category: 'Actions', shortcut: '⌘Z', action: () => d({ type: "UNDO" }) },
     { id: 'action-redo', label: 'Redo', icon: <Redo2 size={16} />, category: 'Actions', shortcut: '⌘Y', action: () => d({ type: "REDO" }) },
     { id: 'action-fit', label: 'Zoom to Fit', icon: <Maximize size={16} />, category: 'Actions', action: () => d({ type: "ZOOM_FIT", vw: window.innerWidth, vh: window.innerHeight }) },
+    { id: 'action-export', label: 'Export Board as JSON', icon: <Download size={16} />, category: 'Actions', action: () => {
+      const blob = new Blob([JSON.stringify({ nodes: s.nodes, arrows: s.arrows }, null, 2)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "board.json"; a.click();
+    }},
+    { id: 'action-share', label: 'Copy Share Link', icon: <Share2 size={16} />, category: 'Actions', action: () => {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied!");
+    }},
     { id: 'action-clear', label: 'Clear Canvas', icon: <Trash2 size={16} />, category: 'Actions', action: () => { if(confirm("Clear everything?")) d({ type: "CLEAR" }); } },
 
     // View & UI
@@ -47,7 +69,7 @@ export default function CommandPalette({ isOpen, onClose, s, d, T, themes, theme
     { id: 'ui-minimap', label: `${showMinimap ? 'Hide' : 'Show'} Minimap`, icon: <Map size={16} />, category: 'View', action: onToggleMinimap },
     { id: 'ui-timeline', label: `${showTimeline ? 'Hide' : 'Show'} Timeline`, icon: <Calendar size={16} />, category: 'View', action: onToggleTimeline },
     { id: 'ui-inspector', label: `${rightOpen ? 'Hide' : 'Show'} Inspector`, icon: <PanelRight size={16} />, category: 'View', action: onToggleRight },
-  ], [d, themeMode, onToggleTheme, showMinimap, onToggleMinimap, showTimeline, onToggleTimeline, rightOpen, onToggleRight]);
+  ], [d, themeMode, onToggleTheme, showMinimap, onToggleMinimap, showTimeline, onToggleTimeline, rightOpen, onToggleRight, s.nodes, s.arrows]);
 
   const nodeResults = useMemo(() => {
     if (query.length < 2) return [];

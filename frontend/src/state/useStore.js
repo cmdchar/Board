@@ -106,7 +106,8 @@ export const useStore = create((set, get) => ({
 
         nextNodes = nextNodes.map(n => {
           if (n.type === 'note' && n.id !== id && n.text.includes(`[[${oldTitle}]]`)) {
-            return { ...n, text: n.text.replace(re, newLink) };
+            // Ensure we replace all occurrences
+            return { ...n, text: n.text.replaceAll(`[[${oldTitle}]]`, newLink) };
           }
           return n;
         });
@@ -134,7 +135,7 @@ export const useStore = create((set, get) => ({
 
           nextNodes = nextNodes.map(n => {
             if (n.type === 'note' && n.id !== id && n.text.includes(`[[${oldTitle}]]`)) {
-              return { ...n, text: n.text.replace(re, newLink) };
+              return { ...n, text: n.text.replaceAll(`[[${oldTitle}]]`, newLink) };
             }
             return n;
           });
@@ -588,3 +589,71 @@ export const useStore = create((set, get) => ({
     };
   }),
 }));
+
+// Selectors
+export const selectRelationships = (state) => {
+  const edges = [];
+  const nodes = state.nodes.filter(n => !n.hidden);
+  const nodeIds = new Set(nodes.map(n => n.id));
+
+  // 1. Structural Edges (Arrows)
+  state.arrows.forEach(a => {
+    if (nodeIds.has(a.fromId) && nodeIds.has(a.toId)) {
+      edges.push({
+        id: a.id,
+        source: a.fromId,
+        target: a.toId,
+        type: 'structural',
+        label: a.label,
+        weight: 1.0
+      });
+    }
+  });
+
+  // 2. Wikilink Edges (Obsidian)
+  const titleToId = {};
+  nodes.forEach(n => {
+    if (n.type === 'note') {
+      const title = n.text.split('\n')[0].replace(/^#+\s*/, '').trim().toLowerCase();
+      if (title) titleToId[title] = n.id;
+    }
+  });
+
+  nodes.forEach(n => {
+    if (n.type === 'note') {
+      const matches = n.text.match(/\[\[(.*?)\]\]/g);
+      if (matches) {
+        matches.forEach(m => {
+          const targetTitle = m.slice(2, -2).trim().toLowerCase();
+          const targetId = titleToId[targetTitle];
+          if (targetId && targetId !== n.id) {
+            edges.push({
+              id: `wiki-${n.id}-${targetId}`,
+              source: n.id,
+              target: targetId,
+              type: 'wikilink',
+              weight: 0.8
+            });
+          }
+        });
+      }
+    }
+  });
+
+  // 3. Temporal Edges (Timeline sequence)
+  const tasks = nodes
+    .filter(n => (n.type === 'task' || n.type === 'milestone') && n.dueDate && n.dueDate !== 'TBD')
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  for (let i = 0; i < tasks.length - 1; i++) {
+    edges.push({
+      id: `temp-${tasks[i].id}-${tasks[i+1].id}`,
+      source: tasks[i].id,
+      target: tasks[i+1].id,
+      type: 'temporal',
+      weight: 0.5
+    });
+  }
+
+  return { nodes, edges };
+};

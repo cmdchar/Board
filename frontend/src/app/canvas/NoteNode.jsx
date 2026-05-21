@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -6,7 +6,7 @@ import 'highlight.js/styles/github-dark.css';
 import { Maximize2, Minimize2, Edit3, Save, Link as LinkIcon, Bold, Italic, Code, Eye } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-export default function NoteNode({ node, sel, onSel, onTouchSel, onUpd, onRSt, onRotSt, depFade = 1, T, nodes = [], RH: GlobalRH }) {
+function NoteNode({ node, sel, onSel, onTouchSel, onUpd, onRSt, onRotSt, depFade = 1, T, nodes = [], RH: GlobalRH }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(node.text || '');
   const [previewNote, setPreviewNote] = useState(null);
@@ -161,6 +161,7 @@ export default function NoteNode({ node, sel, onSel, onTouchSel, onUpd, onRSt, o
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {isEditing ? (
           <textarea
+            data-testid="note-editor"
             ref={editorRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -252,7 +253,7 @@ export default function NoteNode({ node, sel, onSel, onTouchSel, onUpd, onRSt, o
               {previewNote.text?.split('\n')[0].replace(/^#+\s*/, '').trim() || 'Untitled'}
             </div>
             <div style={{ color: T.t2, fontSize: 12, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {previewNote.text?.split('\n').slice(1).join('\n').trim()}
+              {previewNote.text?.split('\n').slice(1).join(' ').replace(/[[\]#*`]/g, '').replace(/\s+/g, ' ').trim()}
             </div>
           </motion.div>
         )}
@@ -260,6 +261,19 @@ export default function NoteNode({ node, sel, onSel, onTouchSel, onUpd, onRSt, o
     </div>
   );
 }
+
+export default memo(NoteNode, (prev, next) => {
+  return (
+    prev.node.text === next.node.text &&
+    prev.node.x === next.node.x &&
+    prev.node.y === next.node.y &&
+    prev.node.w === next.node.w &&
+    prev.node.h === next.node.h &&
+    prev.sel === next.sel &&
+    prev.depFade === next.depFade &&
+    prev.nodes.length === next.nodes.length
+  );
+});
 
 const toolButtonStyle = {
   background: "rgba(255,255,255,0.05)",
