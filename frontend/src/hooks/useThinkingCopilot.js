@@ -280,14 +280,22 @@ function buildBoardContext(state) {
   };
 }
 
-function buildIntentPrompt(intent, userPrompt, context) {
-  return [
+function buildIntentPrompt(intent, userPrompt, context, semanticContext) {
+  const promptParts = [
     `INTENT: ${intent}`,
     `USER_PROMPT: ${String(userPrompt || "").trim()}`,
     "",
     "BOARD_CONTEXT_JSON:",
     JSON.stringify(context, null, 2),
-  ].join("\n");
+  ];
+
+  if (semanticContext && semanticContext.length > 0) {
+    promptParts.push("");
+    promptParts.push("KNOWLEDGE_BASE_CONTEXT:");
+    promptParts.push(JSON.stringify(semanticContext, null, 2));
+  }
+
+  return promptParts.join("\n");
 }
 
 function buildDefaultPrompt(intent, selectedTexts = []) {
@@ -439,8 +447,27 @@ export function useThinkingCopilot({ s, d, uid, theme, palette, shapeTypes, shap
     setLoading(true);
     setError("");
     try {
+      let semanticContext = [];
+      if (selectedTexts.length > 0) {
+        try {
+          const res = await fetch(`/api/boards/${s.boardId}/embeddings/search`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${localStorage.getItem("boardai_token")}`
+            },
+            body: JSON.stringify({ q: effectivePrompt.slice(0, 500), limit: 5 }),
+          }).then(r => r.json());
+          if (res.results) {
+            semanticContext = res.results.map(r => r.content);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch semantic context", err);
+        }
+      }
+
       const context = buildBoardContext(s);
-      const requestPrompt = buildIntentPrompt(normalizedIntent, effectivePrompt, context);
+      const requestPrompt = buildIntentPrompt(normalizedIntent, effectivePrompt, context, semanticContext);
       const raw = await aiCall(requestPrompt, THINKING_SYS);
       const parsed = parseAiJson(raw);
 

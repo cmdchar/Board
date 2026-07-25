@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { aiCall, parseAiJson } from "../ai/helpers";
-import { EXEC_MEETING_SYS } from "../ai/prompts";
+import { EXEC_MEETING_SYS, EXECUTION_SCHEDULER_SYS } from "../ai/prompts";
 
 const TASK_STATUS = ["Todo", "In Progress", "Blocked", "Done"];
 const TASK_PRIORITY = ["P0", "P1", "P2", "P3"];
@@ -518,6 +518,8 @@ export function useExecutionIntelligence({ s, d, uid, notify }) {
   const [autopilotLoading, setAutopilotLoading] = useState(false);
   const [autopilotError, setAutopilotError] = useState("");
   const [autopilotSummary, setAutopilotSummary] = useState("");
+  const [schedulerLoading, setSchedulerLoading] = useState(false);
+  const [schedulerError, setSchedulerError] = useState("");
 
   const snapshot = useMemo(() => deriveExecutionSnapshot(s), [s]);
 
@@ -576,6 +578,41 @@ export function useExecutionIntelligence({ s, d, uid, notify }) {
   const updateTaskDueDate = useCallback((nodeId, dueDate) => {
     updateNode(nodeId, { executionDueDate: normDate(dueDate) });
   }, [updateNode]);
+
+  const runExecutionScheduler = useCallback(async () => {
+    if (schedulerLoading || snapshot.warnings.length === 0) return;
+    setSchedulerLoading(true);
+    setSchedulerError("");
+    try {
+      const graphContext = {
+        tasks: snapshot.tasks,
+        milestones: snapshot.milestones,
+        dependencies: snapshot.dependencies,
+        warnings: snapshot.warnings,
+      };
+
+      const prompt = `Analyze this execution graph and propose smart date/status fixes for all warnings.\n\n${JSON.stringify(graphContext, null, 2)}`;
+      const raw = await aiCall(prompt, EXECUTION_SCHEDULER_SYS);
+      const parsed = parseAiJson(raw);
+
+      if (parsed.patches && Array.isArray(parsed.patches)) {
+        let appliedCount = 0;
+        parsed.patches.forEach(({ nodeId, patch }) => {
+          if (nodeId && patch) {
+            updateNode(nodeId, patch);
+            appliedCount++;
+          }
+        });
+        const summary = parsed.summary || `Applied ${appliedCount} AI patches to resolve warnings.`;
+        notify?.(summary, "success");
+      }
+    } catch (err) {
+      const msg = err?.message || "Execution scheduler failed.";
+      setSchedulerError(msg);
+      notify?.(msg, "error");
+    }
+    setSchedulerLoading(false);
+  }, [schedulerLoading, snapshot, updateNode, notify]);
 
   const runMeetingAutopilot = useCallback(async ({ replace = false } = {}) => {
     const notes = asText(meetingNotes);
@@ -728,6 +765,8 @@ export function useExecutionIntelligence({ s, d, uid, notify }) {
     autopilotLoading,
     autopilotError,
     autopilotSummary,
+    schedulerLoading,
+    schedulerError,
     addTask,
     addMilestone,
     addDecision,
@@ -736,5 +775,6 @@ export function useExecutionIntelligence({ s, d, uid, notify }) {
     updateDependencyType,
     focusNode,
     runMeetingAutopilot,
+    runExecutionScheduler,
   };
 }

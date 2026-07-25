@@ -55,7 +55,33 @@ export default function ExecutionPanel({ T, execution, onToggleTimeline, timelin
     </div>
 
     <div style={{ display: "grid", gap: 6 }}>
-      <HeaderRow title={`BLOCKER RADAR (${execution.warnings.length})`} T={T} />
+      <HeaderRow
+        title={`BLOCKER RADAR (${execution.warnings.length})`}
+        T={T}
+        right={
+          execution.warnings.length > 0 && (
+            <button
+              onClick={() => execution.runExecutionScheduler()}
+              disabled={execution.schedulerLoading}
+              style={{
+                height: 24,
+                padding: "0 8px",
+                borderRadius: 6,
+                border: `1px solid ${T.yDim}`,
+                background: execution.schedulerLoading ? T.bg3 : T.yBg,
+                color: execution.schedulerLoading ? T.t2 : T.y,
+                cursor: execution.schedulerLoading ? "not-allowed" : "pointer",
+                fontSize: 10,
+                fontFamily: "'JetBrains Mono',monospace",
+                fontWeight: 700,
+              }}
+            >
+              {execution.schedulerLoading ? "Resolving..." : "Auto-Resolve with AI"}
+            </button>
+          )
+        }
+      />
+      {execution.schedulerError && <div style={{ fontSize: 11, color: "#fca5a5" }}>{execution.schedulerError}</div>}
       {execution.warnings.length === 0 && <div style={{ border: `1px solid ${T.b1}`, borderRadius: 8, padding: "7px 9px", fontSize: 11, color: "#86efac", background: T.bg2 }}>No active blockers detected.</div>}
       {execution.warnings.slice(0, 6).map((warning, idx) => (
         <button key={`${warning.type}-${idx}`} onClick={() => warning.nodeId && execution.focusNode(warning.nodeId)} style={{ textAlign: "left", minHeight: 36, borderRadius: 8, border: `1px solid ${T.b1}`, background: T.bg2, color: T.t0, cursor: warning.nodeId ? "pointer" : "default", fontSize: 11, padding: "6px 8px" }}>
